@@ -61,7 +61,8 @@ def dense(hiddens):
 def kill_prev_network():
     tf.reset_default_graph()
     sess = tf.get_default_session()
-    sess.close()
+    if sess:
+        sess.close()
 
 
 def xp(
