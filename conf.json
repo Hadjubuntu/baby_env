@@ -1,0 +1,1 @@
+{"seed": 0, "n_frame": 3, "n-xaxis": 7, "n-yaxis": 7, "max_episode_iteration": 1000, "alpha_ground_truth": 0.8, "validation_threshold": 0.5, "sigma_prediction": 1.0}
