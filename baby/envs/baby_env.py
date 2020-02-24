@@ -13,7 +13,7 @@ default_conf = {
     # Seed for data generation
     'seed': 0,
     # Number of frames
-    'n_frame': 3, # 5
+    'n_frame': 10, # 5
     # n-xaxis (mock longitude)
     'n-xaxis': 7,
     # n-yaxis (mock latitude)
@@ -29,9 +29,9 @@ default_conf = {
     # Reward system
     'reward': {
         # Reward at each step
-        'timestep': -1,
+        'timestep': -0,
         # Reward for each validated element
-        'validation': 0
+        'validation': 1,
     }
 }
 
