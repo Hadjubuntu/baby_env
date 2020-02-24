@@ -67,7 +67,7 @@ def kill_prev_network():
 
 def xp(
     env_name='baby-v0',
-    nenv=3,
+    nenv=5,
     model_type='conv',
     network_archi=[(32, 1, 1)],
     lr=7e-4,
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=128)
     
     # test lr impact / nsteps
-    xp(env_name='baby-v0', model_type='conv', network_archi=[(32, 1, 1)], lr=7e-4, nsteps=6, ent_coef=0.005)
+    xp(env_name='baby-v0', model_type='conv', network_archi=[(256, 7, 1), (256, 1, 1)], lr=3e-4, nsteps=5, ent_coef=0.005, gamma=0.95)
     # xp(convs=[(32, 1, 1)], lr=1e-4, nsteps=128)
     
     # test network    
