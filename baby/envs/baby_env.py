@@ -25,7 +25,14 @@ default_conf = {
     # Minimum value of ground truth to be validated
     'validation_threshold': 0.5,
     # Sigma of gaussian filter for prediction depending on delta time
-    'sigma_prediction': 1.0 # prev=0.1
+    'sigma_prediction': 1.0, # prev=0.1
+    # Reward system
+    'reward': {
+        # Reward at each step
+        'timestep': -1,
+        # Reward for each validated element
+        'validation': 0
+    }
 }
 
 class BabyEnv(gym.Env):
@@ -72,13 +79,15 @@ class BabyEnv(gym.Env):
         validation_frame = np.squeeze(self.validation)             
 
         if current_truth[y, x] > (1.0-self.conf['validation_threshold']) and validation_frame[y, x] == 1.0:
-            rew = 1.0
+            rew += self.conf['reward']['validation']
             validation_frame[y, x] = 0.0
             self.validation = np.expand_dims(validation_frame, -1)
 
         # Error pred/obs
         # print(f"Diff={self.current_obs[..., 0][y, x] - current_truth[y, x]}")
-
+        
+        rew += self.conf['reward']['timestep']
+        
         # Update t
         self.t += 1
         

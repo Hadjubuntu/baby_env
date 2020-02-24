@@ -94,7 +94,7 @@ def xp(
     # Dump conf to run directory
     with open('conf.json', 'w') as f:
         from baby.envs.baby_env import default_conf
-        json.dump(default_conf, f)
+        json.dump(default_conf, f, sort_keys=True, indent=4)
 
     # Create model
     if model_type == 'conv':
