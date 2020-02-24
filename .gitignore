@@ -1,0 +1,8 @@
+build/*
+dist/*
+*egg-info/
+.virtualenv/
+*__pycache__*
+.vscode/
+target/*
+.gitignore/*
