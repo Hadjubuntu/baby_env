@@ -12,8 +12,9 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         'numpy==1.18.1',
+        'tensorflow==1.14.0',
         'gym==0.15.4',
-        'baselines',
+        #'baselines',
         'pandas==0.25.3',
         'pytest==5.2.2',
         'matplotlib==3.1.2',
