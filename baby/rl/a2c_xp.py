@@ -60,6 +60,8 @@ def dense(hiddens):
 
 def kill_prev_network():
     tf.reset_default_graph()
+    sess = tf.get_default_session()
+    sess.close()
 
 
 def xp(
@@ -110,7 +112,7 @@ def xp(
         ent_coef=ent_coef,
         max_grad_norm=0.5,
         gamma=gamma,
-        total_timesteps=int(10e6),
+        total_timesteps=int(50e6),
         model_save_path=model_path
     )
     

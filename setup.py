@@ -13,8 +13,9 @@ setup(
     install_requires=[
         'numpy==1.18.1',
         'tensorflow==1.14.0',
+        'tensorflow-gpu==1.14.0',
         'gym==0.15.4',
-        #'baselines',
+        #'baselines', If mpi4py error while installing baselines, install separately 
         'pandas==0.25.3',
         'pytest==5.2.2',
         'matplotlib==3.1.2',
