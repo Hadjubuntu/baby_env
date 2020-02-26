@@ -82,17 +82,19 @@ def xp(
 
     d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
     simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
+    work_dir=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}'
+    
     logger.configure(
-        dir=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}/openai_logs',
+        dir=f'{work_dir}/openai_logs',
         format_strs=['stdout', 'tensorboard'])
 
-    model_path=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}/model.pkl'
-        
+    model_path=f'{work_dir}/model.pkl'
+    conf_path=f'{work_dir}/conf.json'
     
     venv = SubprocVecEnv([make_env(env_name) for _ in range(nenv)])
 
     # Dump conf to run directory
-    with open('conf.json', 'w') as f:
+    with open(conf_path, 'w') as f:
         from baby.envs.baby_env import default_conf
         json.dump(default_conf, f, sort_keys=True, indent=4)
 
