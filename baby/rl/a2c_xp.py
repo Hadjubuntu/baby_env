@@ -81,7 +81,7 @@ def xp(
 ):
     kill_prev_network()
 
-    dir_xp = 'baby_7x7'
+    dir_xp = 'baby_transfer'
 
     d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
     simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
@@ -118,7 +118,7 @@ def xp(
         ent_coef=ent_coef,
         max_grad_norm=0.5,
         gamma=gamma,
-        total_timesteps=int(100e6),
+        total_timesteps=int(200e6),
         model_save_path=model_path
     )
     
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     # xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=128)
     
     # test lr impact / nsteps
-    xp(env_name='baby-v0', model_type='conv', network_archi=[(128, 1, 1), (128, 1, 1)], lr=3e-4, nsteps=5, ent_coef=0.005, gamma=0.95)
+    xp(env_name='baby-v0', model_type='conv', network_archi=[(128, 7, 1), (128, 3, 1), (128, 1, 1)], lr=3e-4, nsteps=5, ent_coef=0.005, gamma=0.95)
     # xp(convs=[(32, 1, 1)], lr=1e-4, nsteps=128)
     
     # test network    

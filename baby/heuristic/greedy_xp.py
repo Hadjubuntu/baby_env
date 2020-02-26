@@ -25,6 +25,41 @@ default_conf = {
 Average episode length=157.736
 Std episode length=111.51488826161285
 Average episode duration=0.20047351908683778 seconds
+
+
+--------------------
+Conf for transfer learning
+
+default_conf = {
+    # Seed for data generation
+    'seed': 0,
+    # Number of frames
+    'n_frame': 20, # 5
+    # n-xaxis (mock longitude)
+    'n-xaxis': 21,
+    # n-yaxis (mock latitude)
+    'n-yaxis': 9,
+    # max episode iteration
+    'max_episode_iteration': 1000,
+    # factor of ground truth modification
+    'alpha_ground_truth': 0.8,
+    # Minimum value of ground truth to be validated
+    'validation_threshold': 0.8,
+    # Sigma of gaussian filter for prediction depending on delta time
+    'sigma_prediction': 1.0, # prev=0.1
+    # Reward system
+    'reward': {
+        # Reward at each step
+        'timestep': 0,
+        # Reward for each validated element
+        'validation': 1,
+    }
+}
+
+Average episode length=223.99
+Std episode length=21.62521444980373
+Average episode duration=1.2746098566055297 seconds
+
 """
 
 import gym
