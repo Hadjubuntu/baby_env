@@ -1,3 +1,6 @@
+#Force using CPU only (seems faster on this env/conf)
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
 import gym
 
@@ -115,7 +118,7 @@ def xp(
         ent_coef=ent_coef,
         max_grad_norm=0.5,
         gamma=gamma,
-        total_timesteps=int(50e6),
+        total_timesteps=int(100e6),
         model_save_path=model_path
     )
     

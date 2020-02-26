@@ -42,8 +42,13 @@ benv.default_conf['seed']=np.random.randint(99999)
 env = gym.make('baby-v0')
 heuristic = GreedyHeuristic(n=1)
 
+# Print frequence
+print_freq = 25
+
 # Execute one episode
-def episode():
+def episode(i):
+    if i % print_freq == 0:
+        print(f"Running episode #{i}")
     done = False
     steps = 0
     obs = env.reset()
@@ -59,7 +64,7 @@ def episode():
 # Batch execuion to estimate average completion
 n_runs=100
 t_s = time.time()
-steps=[episode() for _ in range(n_runs)]
+steps=[episode(i) for i in range(n_runs)]
 dt = time.time()-t_s
 
 print(f"Average episode length={np.mean(steps)}")
