@@ -13,17 +13,17 @@ default_conf = {
     # Seed for data generation
     'seed': 0,
     # Number of frames
-    'n_frame': 10, # 5
+    'n_frame': 20, # 5
     # n-xaxis (mock longitude)
-    'n-xaxis': 7,
+    'n-xaxis': 21,
     # n-yaxis (mock latitude)
-    'n-yaxis': 7,
+    'n-yaxis': 9,
     # max episode iteration
     'max_episode_iteration': 1000,
     # factor of ground truth modification
     'alpha_ground_truth': 0.8,
     # Minimum value of ground truth to be validated
-    'validation_threshold': 0.5,
+    'validation_threshold': 0.8,
     # Sigma of gaussian filter for prediction depending on delta time
     'sigma_prediction': 1.0, # prev=0.1
     # Reward system
