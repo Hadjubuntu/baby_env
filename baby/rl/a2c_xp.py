@@ -81,21 +81,12 @@ def xp(
 ):
     kill_prev_network()
 
-<<<<<<< HEAD
-    dir_xp = 'baby_2x2'
-
-    d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
-    simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
-    work_dir=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}' 
-
-=======
     dir_xp = 'baby_transfer'
 
     d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
     simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
     work_dir=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}'
     
->>>>>>> c133d39f89d84828268a03fa2c3557dfafe8bbe8
     logger.configure(
         dir=f'{work_dir}/openai_logs',
         format_strs=['stdout', 'tensorboard'])
@@ -136,19 +127,7 @@ if __name__ == '__main__':
     # xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=128)
     
     # test lr impact / nsteps
-<<<<<<< HEAD
-    xp(
-        env_name='baby-v0', 
-        model_type='conv', 
-        network_archi=[(16, 2, 1), (8, 1, 1)],
-        lr=1e-3, 
-        nsteps=5, 
-        vf_coef=0.5,
-        ent_coef=0.001, 
-        gamma=0.9)
-=======
     xp(env_name='baby-v0', model_type='conv', network_archi=[(128, 7, 1), (128, 3, 1), (128, 1, 1)], lr=3e-4, nsteps=5, ent_coef=0.005, gamma=0.95)
->>>>>>> c133d39f89d84828268a03fa2c3557dfafe8bbe8
     # xp(convs=[(32, 1, 1)], lr=1e-4, nsteps=128)
     
     # test network    
