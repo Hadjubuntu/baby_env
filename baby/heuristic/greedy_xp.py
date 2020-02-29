@@ -57,7 +57,7 @@ def episode():
     return steps
 
 # Batch execuion to estimate average completion
-n_runs=100
+n_runs=1000
 t_s = time.time()
 steps=[episode() for _ in range(n_runs)]
 dt = time.time()-t_s

@@ -40,8 +40,9 @@ import baby.envs.baby_env as benv
 from baby.rl.a2c import Model
 from baby.rl.a2c_xp import conv_net, make_env
 
-model_path='/home/adrien.hadj/model_baby.pkl'
-network = conv_net([(64, 1, 1), (32, 1, 1)])
+model_path='/home/adrien/gcp_baby_7x7/envbaby-v0_lr0.0003_nsteps5_conv_128filters_2layers_ent0.005_gamma0.95/run-2020-02-24--15-16-10/model.pkl'
+#'/home/adrien/baby_2x2/envbaby-v0_lr0.0003_nsteps5_conv_128filters_1layers_ent0.005_gamma0.95/run-2020-02-24--18-43-16/model.pkl'
+network = conv_net([(128, 1, 1), (128, 1, 1)])
 
 def load_model(venv, load_path, network, **network_kwargs):
     policy = build_policy(venv, network, **network_kwargs)

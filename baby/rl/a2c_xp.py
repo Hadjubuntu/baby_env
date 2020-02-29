@@ -78,21 +78,23 @@ def xp(
 ):
     kill_prev_network()
 
-    dir_xp = 'baby_7x7'
+    dir_xp = 'baby_2x2'
 
     d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
     simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
+    work_dir=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}' 
+
     logger.configure(
-        dir=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}/openai_logs',
+        dir=f'{work_dir}/openai_logs',
         format_strs=['stdout', 'tensorboard'])
 
-    model_path=f'{pathlib.Path.home()}/{dir_xp}/{simu_name}/run-{d}/model.pkl'
-        
+    model_path=f'{work_dir}/model.pkl'
+    conf_path=f'{work_dir}/conf.json'
     
     venv = SubprocVecEnv([make_env(env_name) for _ in range(nenv)])
 
     # Dump conf to run directory
-    with open('conf.json', 'w') as f:
+    with open(conf_path, 'w') as f:
         from baby.envs.baby_env import default_conf
         json.dump(default_conf, f, sort_keys=True, indent=4)
 
@@ -122,7 +124,15 @@ if __name__ == '__main__':
     # xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=128)
     
     # test lr impact / nsteps
-    xp(env_name='baby-v0', model_type='conv', network_archi=[(128, 1, 1), (128, 1, 1)], lr=3e-4, nsteps=5, ent_coef=0.005, gamma=0.95)
+    xp(
+        env_name='baby-v0', 
+        model_type='conv', 
+        network_archi=[(16, 2, 1), (8, 1, 1)],
+        lr=1e-3, 
+        nsteps=5, 
+        vf_coef=0.5,
+        ent_coef=0.001, 
+        gamma=0.9)
     # xp(convs=[(32, 1, 1)], lr=1e-4, nsteps=128)
     
     # test network    

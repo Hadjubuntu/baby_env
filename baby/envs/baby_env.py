@@ -29,7 +29,7 @@ default_conf = {
     # Reward system
     'reward': {
         # Reward at each step
-        'timestep': -0,
+        'timestep': 0,
         # Reward for each validated element
         'validation': 1,
     }
