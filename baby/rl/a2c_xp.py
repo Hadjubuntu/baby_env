@@ -127,7 +127,15 @@ if __name__ == '__main__':
     # xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=128)
     
     # test lr impact / nsteps
-    xp(env_name='baby-v0', model_type='conv', network_archi=[(128, 7, 1), (128, 3, 1), (128, 1, 1)], lr=3e-4, nsteps=5, ent_coef=0.005, gamma=0.95)
+    xp(
+        env_name='baby-v0', 
+        model_type='conv', 
+        network_archi=[(128, 7, 1), (128, 3, 1), (128, 1, 1)], 
+        lr=3e-4, 
+        nsteps=5, 
+        ent_coef=0.005, 
+        gamma=0.95
+    )
     # xp(convs=[(32, 1, 1)], lr=1e-4, nsteps=128)
     
     # test network    
