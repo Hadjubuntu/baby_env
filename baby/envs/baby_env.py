@@ -105,7 +105,49 @@ class BabyEnv(gym.Env):
         
         return obs, rew, done, info
     
+    def sigma_v(self, v, gamma, mu=0.5, sigma=0.3):
+        return gamma * np.exp(-(v-mu)**2/(2*sigma**2))
+
+    def n_gaussian_filter(self, m, ni, nj, sigma_v_func, gamma):
+        im = int(np.ceil(m.shape[0]/ni))
+        jm = int(np.ceil(m.shape[1]/nj))
+            
+        out_m = np.copy(m)
+        
+        for i in range(im):
+            for j in range(jm):
+                sub_m = out_m[i*ni:(i+1)*ni, j*nj:(j+1)*nj]
+                mean_sub_m = np.mean(sub_m)
+
+                c_sigma_v = sigma_v_func(mean_sub_m, gamma)
+                rand = c_sigma_v / 4.0 * (np.random.rand()-0.5)
+
+                sub_m = gaussian_filter((sub_m + rand), sigma=c_sigma_v)
+                
+                out_m[i*ni:(i+1)*ni, j*nj:(j+1)*nj] = sub_m
+                
+        return out_m
+
+    def f_predict_ngaussian(self, truth_frame, dt):        
+        """
+        NEW METHOD !! Improve this (hard-coded..)
+        """
+        ni, nj = 3, 3
+        if dt > self.conf['n_frame'] / 2.0:
+            ni, nj = 4, 4
+
+        gamma = np.sqrt(dt+1)
+
+        pred = np.copy(truth_frame)
+        pred = self.n_gaussian_filter(pred, ni, nj, self.sigma_v, gamma)
+        pred = np.clip(pred, 0.0, 1.0)
+        
+        return pred
+
     def f_predict(self, truth_frame, dt):        
+        """
+        Origin method (simple gaussian filter with sigma depending on t)
+        """
         pred = np.copy(truth_frame)        
         pred = gaussian_filter(pred, sigma=self.conf['sigma_prediction']*(dt+1))
         pred = np.clip(pred, 0.0, 1.0)
@@ -117,7 +159,7 @@ class BabyEnv(gym.Env):
         pred_t_tn = np.copy(self.ground_truth[..., t:(t+n_frame)])
                 
         for i in range(self.conf['n_frame']):
-            pred_t_tn[..., i] = self.f_predict(pred_t_tn[..., i], i)
+            pred_t_tn[..., i] = self.f_predict_ngaussian(pred_t_tn[..., i], i)
             
         return pred_t_tn
         
