@@ -120,7 +120,7 @@ class BabyEnv(gym.Env):
                 mean_sub_m = np.mean(sub_m)
 
                 rand_sigma_v = sigma_v_func(mean_sub_m, 1.0)
-                rand = rand_sigma_v / 4.0 * (np.random.rand()-0.5)
+                rand = rand_sigma_v / 3.0 * (np.random.rand()-0.5)
 
                 c_sigma_v = sigma_v_func(mean_sub_m, gamma)
                 sub_m = gaussian_filter(sub_m + rand, sigma=c_sigma_v)
