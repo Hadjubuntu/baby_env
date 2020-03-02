@@ -107,7 +107,7 @@ class BabyEnv(gym.Env):
         
         return obs, rew, done, info
     
-    def sigma_v(self, v, gamma, mu=0.5, sigma=0.35):
+    def sigma_v(self, v, gamma, mu=0.5, sigma=0.5):
         return gamma * np.exp(-(v-mu)**2/(2*sigma**2))
 
     # def n_gaussian_filter(self, m, ni, nj, sigma_v_func, gamma):
