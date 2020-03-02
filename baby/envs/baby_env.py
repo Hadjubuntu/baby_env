@@ -158,19 +158,15 @@ class BabyEnv(gym.Env):
         # Add bias depending on truth value (on median values)
         rand_m = self.sigma_v(truth_frame, gamma=self.conf['sigma_prediction']) * (np.random.rand()-0.5)
         
-        pred = np.copy(truth_frame)
         pred = uniform_filter(pred+rand_m, size=c_size)
-        pred = np.clip(pred, 0.0, 1.0)
         
         return pred
 
     def f_predict(self, truth_frame, dt):        
         """
         Origin method (simple gaussian filter with sigma depending on t)
-        """
-        pred = np.copy(truth_frame)        
+        """   
         pred = gaussian_filter(pred, sigma=self.conf['sigma_prediction']*(dt+1))
-        pred = np.clip(pred, 0.0, 1.0)
         
         return pred
     
@@ -179,8 +175,11 @@ class BabyEnv(gym.Env):
         pred_t_tn = np.copy(self.ground_truth[..., t:(t+n_frame)])
                 
         for i in range(self.conf['n_frame']):
-            pred_t_tn[..., i] = self.f_predict_tuned(pred_t_tn[..., i], i)
-            
+            pred_t_tn[..., i] = self.f_predict_tuned(pred_t_tn[..., i], i)            
+              
+        # Clip all values if outside [0, 1]    
+        pred_t_tn = np.clip(pred_t_tn, 0.0, 1.0)
+        
         return pred_t_tn
         
     
