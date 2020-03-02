@@ -159,7 +159,7 @@ class BabyEnv(gym.Env):
         rand_m = self.sigma_v(truth_frame, gamma=0.1) * (np.random.rand()-0.5)
         
         pred = np.copy(truth_frame)
-        pred = uniform_filter(pred+rand_m, size=c_size)
+        pred = uniform_filter(pred, size=c_size)+rand_m
         pred = np.clip(pred, 0.0, 1.0)
         
         return pred
