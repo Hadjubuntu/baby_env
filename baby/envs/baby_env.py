@@ -158,7 +158,7 @@ class BabyEnv(gym.Env):
         # Add bias depending on truth value (on median values)
         rand_m = self.sigma_v(truth_frame, gamma=self.conf['sigma_prediction']) * (np.random.rand()-0.5)
         
-        pred = uniform_filter(pred+rand_m, size=c_size)
+        pred = uniform_filter(truth_frame + rand_m, size=c_size)
         
         return pred
 
@@ -166,7 +166,7 @@ class BabyEnv(gym.Env):
         """
         Origin method (simple gaussian filter with sigma depending on t)
         """   
-        pred = gaussian_filter(pred, sigma=self.conf['sigma_prediction']*(dt+1))
+        pred = gaussian_filter(truth_frame, sigma=self.conf['sigma_prediction']*(dt+1))
         
         return pred
     
