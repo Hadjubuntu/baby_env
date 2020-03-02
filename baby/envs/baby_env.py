@@ -107,7 +107,7 @@ class BabyEnv(gym.Env):
         
         return obs, rew, done, info
     
-    def sigma_v(self, v, gamma, mu=0.5, sigma=0.3):
+    def sigma_v(self, v, gamma, mu=0.5, sigma=0.5):
         return gamma * np.exp(-(v-mu)**2/(2*sigma**2))
 
     # def n_gaussian_filter(self, m, ni, nj, sigma_v_func, gamma):
@@ -156,7 +156,7 @@ class BabyEnv(gym.Env):
         # Add blur depending on frame time
         c_size = int(2 + np.sqrt(dt/2.0))
         # Add bias depending on truth value (on median values)
-        rand_m = self.sigma_v(truth_frame, gamma=0.1) * (np.random.rand()-0.5)
+        rand_m = self.sigma_v(truth_frame, gamma=0.2*np.sqrt(dt + 1)) * (np.random.rand()-0.5)
         
         pred = np.copy(truth_frame)
         pred = uniform_filter(pred, size=c_size)+rand_m
