@@ -190,8 +190,7 @@ class BabyEnv(gym.Env):
         next_frame = np.copy(prev_frame)
         
         rand_frame = (self.np_random.rand(self.conf['n-yaxis'], self.conf['n-xaxis'])-0.5)
-        next_frame = next_frame + self.conf['alpha_ground_truth'] * gaussian_filter(rand_frame, sigma=1.0)
-        next_frame = np.clip(next_frame, 0.0, 1.0)
+        next_frame = next_frame + self.conf['alpha_ground_truth'] * gaussian_filter(rand_frame, sigma=1.0)        
         
         return next_frame
     
@@ -204,4 +203,6 @@ class BabyEnv(gym.Env):
         for t in range(1, self.conf['max_episode_iteration']):
             prev_f = self.ground_truth[..., t-1]
             self.ground_truth[..., t] = self.f_truth(prev_f)
+            
+        self.ground_truth = np.clip(self.ground_truth, 0.0, 1.0)
             
