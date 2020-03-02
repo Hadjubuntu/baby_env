@@ -154,7 +154,7 @@ class BabyEnv(gym.Env):
     
     def f_predict_tuned(self, truth_frame, dt):
         # Add blur depending on frame time
-        c_size = int(3 + np.sqrt(dt/2.0))
+        c_size = int(4 + np.sqrt(dt/2.0))
         # Add bias depending on truth value (on median values)
         rand_m = self.sigma_v(truth_frame, gamma=self.conf['sigma_prediction']) * (np.random.rand()-0.5)
         
