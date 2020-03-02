@@ -154,9 +154,9 @@ class BabyEnv(gym.Env):
     
     def f_predict_tuned(self, truth_frame, dt):
         # Add blur depending on frame time
-        c_size = int(2 + np.sqrt(dt))
+        c_size = int(2 + np.sqrt(dt/2.0))
         # Add bias depending on truth value (on median values)
-        rand_m = self.sigma_v(truth_frame, gamma=1.0) * (np.random.rand()-0.5)
+        rand_m = self.sigma_v(truth_frame, gamma=0.1) * (np.random.rand()-0.5)
         
         pred = np.copy(truth_frame)
         pred = uniform_filter(pred+rand_m, size=c_size)
