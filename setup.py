@@ -19,6 +19,6 @@ setup(
         'pandas==0.25.3',
         'pytest==5.2.2',
         'matplotlib==3.1.2',
-        'jupyter==1.0.0'
+        'jupyter==1.0.0',
         'Pillow==7.0.0'],
 )
