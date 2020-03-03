@@ -192,6 +192,9 @@ class BabyEnv(gym.Env):
         rand_frame = (self.np_random.rand(self.conf['n-yaxis'], self.conf['n-xaxis'])-0.5)
         next_frame = next_frame + self.conf['alpha_ground_truth'] * gaussian_filter(rand_frame, sigma=1.0)        
         
+        # Need to clip here to prevent from diverging recursively
+        next_frame = np.clip(next_frame, 0.0, 1.0)
+
         return next_frame
     
     def reset_ground_truth(self):
@@ -204,5 +207,4 @@ class BabyEnv(gym.Env):
             prev_f = self.ground_truth[..., t-1]
             self.ground_truth[..., t] = self.f_truth(prev_f)
             
-        self.ground_truth = np.clip(self.ground_truth, 0.0, 1.0)
             
