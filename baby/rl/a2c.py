@@ -34,7 +34,7 @@ class Model(object):
     def __init__(self, policy, env, nsteps,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear',
-            short_term_coef=0.25):
+            st_coef=0.25):
 
         sess = tf_util.get_session()
         nenvs = env.num_envs
@@ -69,9 +69,9 @@ class Model(object):
         vf_loss = losses.mean_squared_error(tf.squeeze(train_model.vf), R)
         
         # Short-term loss        
-        short_term_loss = tf.reduce_mean(SR * neglogpac)
+        st_loss = tf.reduce_mean(SR * neglogpac)
 
-        loss = pg_loss - entropy*ent_coef + vf_loss * vf_coef + short_term_coef*short_term_loss
+        loss = pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
 
         # Update parameters using loss
         # 1. Get the model parameters
@@ -106,7 +106,7 @@ class Model(object):
                 td_map[train_model.S] = states
                 td_map[train_model.M] = masks
             policy_loss, value_loss, policy_entropy, short_term_loss, _ = sess.run(
-                [pg_loss, vf_loss, entropy, short_term_loss, _train],
+                [pg_loss, vf_loss, entropy, st_loss, _train],
                 td_map
             )
             return policy_loss, value_loss, policy_entropy, short_term_loss
