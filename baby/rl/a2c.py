@@ -10,11 +10,13 @@ from baselines.common.policies import build_policy
 
 
 from baselines.a2c.utils import Scheduler, find_trainable_variables
-from baselines.a2c.runner import Runner
 from baselines.ppo2.ppo2 import safemean
 from collections import deque
 
 from tensorflow import losses
+
+# Tuned
+from baby.rl.runner import Runner
 
 
 class Model(object):
@@ -31,7 +33,8 @@ class Model(object):
     """
     def __init__(self, policy, env, nsteps,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
-            alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear'):
+            alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear',
+            short_term_coef=0.25):
 
         sess = tf_util.get_session()
         nenvs = env.num_envs
@@ -49,6 +52,7 @@ class Model(object):
         ADV = tf.placeholder(tf.float32, [nbatch])
         R = tf.placeholder(tf.float32, [nbatch])
         LR = tf.placeholder(tf.float32, [])
+        SR = tf.placeholder(tf.float32, [nbatch])
 
         # Calculate the loss
         # Total loss = Policy gradient loss - entropy * entropy coefficient + Value coefficient * value loss
@@ -63,8 +67,11 @@ class Model(object):
 
         # Value loss
         vf_loss = losses.mean_squared_error(tf.squeeze(train_model.vf), R)
+        
+        # Short-term loss        
+        short_term_loss = tf.reduce_mean(SR * neglogpac)
 
-        loss = pg_loss - entropy*ent_coef + vf_loss * vf_coef
+        loss = pg_loss - entropy*ent_coef + vf_loss * vf_coef + short_term_coef*short_term_loss
 
         # Update parameters using loss
         # 1. Get the model parameters
@@ -87,22 +94,22 @@ class Model(object):
 
         lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
-        def train(obs, states, rewards, masks, actions, values):
+        def train(obs, states, rewards, masks, actions, values, rewards_short_term):
             # Here we calculate advantage A(s,a) = R + yV(s') - V(s)
             # rewards = R + yV(s')
             advs = rewards - values
             for step in range(len(obs)):
                 cur_lr = lr.value()
 
-            td_map = {train_model.X:obs, A:actions, ADV:advs, R:rewards, LR:cur_lr}
+            td_map = {train_model.X:obs, A:actions, ADV:advs, R:rewards, LR:cur_lr, SR:rewards_short_term}
             if states is not None:
                 td_map[train_model.S] = states
                 td_map[train_model.M] = masks
-            policy_loss, value_loss, policy_entropy, _ = sess.run(
-                [pg_loss, vf_loss, entropy, _train],
+            policy_loss, value_loss, policy_entropy, short_term_loss, _ = sess.run(
+                [pg_loss, vf_loss, entropy, short_term_loss, _train],
                 td_map
             )
-            return policy_loss, value_loss, policy_entropy
+            return policy_loss, value_loss, policy_entropy, short_term_loss
 
 
         self.train = train
@@ -207,10 +214,10 @@ def learn(
 
     for update in range(1, total_timesteps//nbatch+1):
         # Get mini batch of experiences
-        obs, states, rewards, masks, actions, values, epinfos = runner.run()
+        obs, states, rewards, masks, actions, values, epinfos, rewards_short_term = runner.run()
         epinfobuf.extend(epinfos)
 
-        policy_loss, value_loss, policy_entropy = model.train(obs, states, rewards, masks, actions, values)
+        policy_loss, value_loss, policy_entropy, short_term_loss = model.train(obs, states, rewards, masks, actions, values, rewards_short_term)
         nseconds = time.time()-tstart
 
         # Calculate the fps (frame per second)
@@ -224,6 +231,7 @@ def learn(
             logger.record_tabular("fps", fps)
             logger.record_tabular("policy_entropy", float(policy_entropy))
             logger.record_tabular("value_loss", float(value_loss))
+            logger.record_tabular("short_term_loss", float(short_term_loss))
             logger.record_tabular("explained_variance", float(ev))
             logger.record_tabular("eprewmean", safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.record_tabular("eplenmean", safemean([epinfo['l'] for epinfo in epinfobuf]))
