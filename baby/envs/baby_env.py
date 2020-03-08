@@ -15,7 +15,7 @@ default_conf = {
     # Seed for data generation
     'seed': 0,
     # Number of frames
-    'n_frame': 20, # 5
+    'n_frame': 1, # 5
     # n-xaxis (mock longitude)
     'n-xaxis': 21,
     # n-yaxis (mock latitude)
@@ -198,13 +198,17 @@ class BabyEnv(gym.Env):
         return next_frame
     
     def reset_ground_truth(self):
+        tmp = np.copy(self.ground_truth)
+
         # Generate the first frame randomly, apply gaussian filter to imitate spatial coherence
         f0 = self.np_random.rand(self.conf['n-yaxis'], self.conf['n-xaxis'])
         f0 = gaussian_filter(f0, sigma=1.0)
                
-        self.ground_truth[..., 0] = f0
+        tmp[..., 0] = f0
         for t in range(1, self.conf['max_episode_iteration']):
-            prev_f = self.ground_truth[..., t-1]
-            self.ground_truth[..., t] = self.f_truth(prev_f)
+            prev_f = tmp[..., t-1]
+            tmp[..., t] = self.f_truth(prev_f)
+
+        self.ground_truth = tmp
             
             
