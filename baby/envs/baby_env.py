@@ -15,10 +15,10 @@ default_conf = {
     # Seed for data generation
     'seed': 0,
     # Number of frames
-    'n_frame': 1, # 5
-    # n-xaxis (mock longitude)
+    'n_frame': 20, # 20
+    # n-xaxis (mock longitude, default: 21)
     'n-xaxis': 21,
-    # n-yaxis (mock latitude)
+    # n-yaxis (mock latitude, default: 9)
     'n-yaxis': 9,
     # max episode iteration
     'max_episode_iteration': 1000,

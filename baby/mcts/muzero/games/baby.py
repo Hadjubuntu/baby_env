@@ -8,23 +8,25 @@ import torch
 from baby.mcts.muzero.games.abstract_game import AbstractGame
 
 import baby.envs.baby_env
+from baby.envs.baby_env import default_conf
 
 
 class MuZeroConfig:
     def __init__(self):
         self.seed = 0  # Seed for numpy, torch and the game
 
+        c = default_conf
 
         ### Game
-        self.observation_shape = (9, 21, 2)  # Dimensions of the game observation, must be 3D. For a 1D array, please reshape it to (1, 1, length of array)
-        self.action_space = [i for i in range(189)]  # Fixed list of all possible actions. You should only edit the length
+        self.observation_shape = (c['n-xaxis'], c['n-yaxis'], c['n_frame']+1)  # Dimensions of the game observation, must be 3D. For a 1D array, please reshape it to (1, 1, length of array)
+        self.action_space = [i for i in range(c['n-yaxis']*c['n-xaxis'])]  # Fixed list of all possible actions. You should only edit the length
         self.players = [i for i in range(1)]  # List of players. You should only edit the length
         self.stacked_observations = 0  # Number of previous observation to add to the current observation
 
 
         ### Self-Play
-        self.num_actors = 4  # Number of simultaneous threads self-playing to feed the replay buffer
-        self.max_moves = 2000  # Maximum number of moves if game is not finished before
+        self.num_actors = 2  # Number of simultaneous threads self-playing to feed the replay buffer
+        self.max_moves = c['max_episode_iteration']  # Maximum number of moves if game is not finished before
         self.num_simulations = 50  # Number of futur moves self-simulated
         self.discount = 0.997  # Chronological discount of the reward
         self.temperature_threshold = 2000  # Number of moves before dropping temperature to 0 (ie playing according to the max)
@@ -144,7 +146,8 @@ class Game(AbstractGame):
         Returns:
             An array of integers, subset of the action space.
         """
-        return [i for i in range(4)]
+        c = default_conf
+        return [i for i in range(c['n-yaxis']*c['n-xaxis'])]
 
     def reset(self):
         """
