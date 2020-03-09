@@ -27,9 +27,9 @@ default_conf = {
     # Minimum value of ground truth to be validated
     'validation_threshold': 0.8,
     # Sigma of gaussian filter for prediction depending on delta time
-    'sigma_prediction': 1.0, # prev=1.0 for training/transfer // prev=0.1
-    'gamma_gaussian_value': 0.5,
-    'sigma_gaussian_value': 1.0,
+    'sigma_prediction': 0.8, # prev=1.0 for training/transfer // prev=0.1
+    'gamma_gaussian_value': 1.4,
+    'sigma_gaussian_value': 0.45,
     # Reward system
     'reward': {
         # Reward at each step
@@ -123,7 +123,7 @@ class BabyEnv(gym.Env):
             truth_frame, mu=0.5, sigma=self.conf['sigma_gaussian_value']
         ) * rand_frame
         
-        pred_t = gaussian_filter(truth_frame, sigma=sigma_t)+gaussian_filter(rand_m,sigma=1.0)
+        pred_t = gaussian_filter(truth_frame+rand_m, sigma=sigma_t)
         
         return pred_t
 
