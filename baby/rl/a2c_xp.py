@@ -70,7 +70,7 @@ def kill_prev_network():
 
 def xp(
     env_name='baby-v0',
-    nenv=10,
+    nenv=5,
     model_type='conv',
     network_archi=[(32, 1, 1)],
     lr=7e-4,
@@ -123,26 +123,15 @@ def xp(
     )
     
 if __name__ == '__main__':
-    #xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=5)
-    # xp(convs=[(32, 1, 1)], lr=7e-4, nsteps=128)
-    
-    # test lr impact / nsteps
+    # Train with A2C
     xp(
         env_name='baby-v0', 
         model_type='conv', 
         network_archi=[(128, 7, 1), (128, 3, 1), (128, 1, 1)], 
-        lr=8e-4, 
-        nsteps=2, 
+        lr=3e-4, 
+        nsteps=5, 
         ent_coef=0.005, 
         gamma=0.99
     )
-    # xp(convs=[(32, 1, 1)], lr=1e-4, nsteps=128)
-    
-    # test network    
-    # xp(convs=[(128, 10, 1), (128, 1, 1)], lr=1e-3, nsteps=5)
-    # xp(convs=[(128, 10, 1), (128, 1, 1)], lr=7e-4, nsteps=128)
-    
-    # test network deep
-    # xp(convs=[(128, 10, 1), (64, 1, 1), (32, 1, 1)], lr=7e-4, nsteps=5)
-    # xp(convs=[(128, 10, 1), (64, 1, 1), (32, 1, 1)], lr=7e-4, nsteps=128)
+
     
