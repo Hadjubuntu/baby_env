@@ -27,7 +27,9 @@ default_conf = {
     # Minimum value of ground truth to be validated
     'validation_threshold': 0.8,
     # Sigma of gaussian filter for prediction depending on delta time
-    'sigma_prediction': 0.2, # prev=1.0 for training/transfer // prev=0.1
+    'sigma_prediction': 1.0, # prev=1.0 for training/transfer // prev=0.1
+    'gamma_gaussian_value': 0.5,
+    'sigma_gaussian_value': 1.0,
     # Reward system
     'reward': {
         # Reward at each step
@@ -107,60 +109,23 @@ class BabyEnv(gym.Env):
         
         return obs, rew, done, info
     
-    def sigma_v(self, v, gamma, mu=0.5, sigma=0.7):
-        return gamma * np.exp(-(v-mu)**2/(2*sigma**2))
+    def sigma_v(self, v, mu=0.5, sigma=1.2):
+        return np.exp(-(v-mu)**2/(2*sigma**2))
 
-    # def n_gaussian_filter(self, m, ni, nj, sigma_v_func, gamma):
-    #     """
-    #     Method too slow !!!
-    #     """
-    #     im = int(np.ceil(m.shape[0]/ni))
-    #     jm = int(np.ceil(m.shape[1]/nj))
-            
-    #     out_m = np.copy(m)
-        
-    #     for i in range(im):
-    #         for j in range(jm):
-    #             sub_m = out_m[i*ni:(i+1)*ni, j*nj:(j+1)*nj]
-    #             mean_sub_m = np.mean(sub_m)
-
-    #             rand_sigma_v = sigma_v_func(mean_sub_m, 1.0)
-    #             rand = rand_sigma_v / 3.0 * (np.random.rand()-0.5)
-
-    #             c_sigma_v = sigma_v_func(mean_sub_m, gamma)
-    #             sub_m = gaussian_filter(sub_m + rand, sigma=c_sigma_v)
-                
-    #             out_m[i*ni:(i+1)*ni, j*nj:(j+1)*nj] = sub_m
-                
-    #     return out_m
-
-    # def f_predict_ngaussian(self, truth_frame, dt):        
-    #     """
-    #     NEW METHOD !! Improve this (hard-coded..)
-    #     Too slow :'(
-    #     """
-    #     ni, nj = 3, 3
-    #     if dt > self.conf['n_frame'] / 2.0:
-    #         ni, nj = 4, 4
-
-    #     gamma = np.sqrt(dt+1)
-
-    #     pred = np.copy(truth_frame)
-    #     pred = self.n_gaussian_filter(pred, ni, nj, self.sigma_v, gamma)
-    #     pred = np.clip(pred, 0.0, 1.0)
-        
-    #     return pred
-    
     
     def f_predict_tuned(self, truth_frame, dt):
         # Add blur depending on frame time
-        c_size = int(4 + np.sqrt(dt/2.0))
+        sigma_t = self.conf['sigma_prediction'] * np.sqrt(dt+1)
+
         # Add bias depending on truth value (on median values)
-        rand_m = self.sigma_v(truth_frame, gamma=self.conf['sigma_prediction']) * (np.random.rand()-0.5)
+        rand_frame = (self.np_random.rand(self.conf['n-yaxis'], self.conf['n-xaxis'])-0.5)
+        rand_m = self.conf['gamma_gaussian_value'] * np.sqrt(dt+1) * self.sigma_v(
+            truth_frame, mu=0.5, sigma=self.conf['sigma_gaussian_value']
+        ) * rand_frame
         
-        pred = uniform_filter(truth_frame + rand_m, size=c_size)
+        pred_t = gaussian_filter(truth_frame, sigma=sigma_t)+gaussian_filter(rand_m,sigma=1.0)
         
-        return pred
+        return pred_t
 
     def f_predict(self, truth_frame, dt):        
         """
@@ -203,6 +168,7 @@ class BabyEnv(gym.Env):
         # Generate the first frame randomly, apply gaussian filter to imitate spatial coherence
         f0 = self.np_random.rand(self.conf['n-yaxis'], self.conf['n-xaxis'])
         f0 = gaussian_filter(f0, sigma=1.0)
+        f0 = np.clip(f0, 0.0, 1.0)
                
         tmp[..., 0] = f0
         for t in range(1, self.conf['max_episode_iteration']):

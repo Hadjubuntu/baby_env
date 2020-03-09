@@ -81,7 +81,7 @@ def xp(
 ):
     kill_prev_network()
 
-    dir_xp = 'baby_transfer'
+    dir_xp = 'baby_transfer_new'
 
     d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
     simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
