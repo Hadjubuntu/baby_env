@@ -18,6 +18,11 @@ class Runner(AbstractEnvRunner):
         self.batch_action_shape = [x if x is not None else -1 for x in model.train_model.action.shape.as_list()]
         self.ob_dtype = model.train_model.X.dtype.as_numpy_dtype
 
+    def adr(self, progress):
+        # Automatic Domain Randomization
+        complexities = self.env.adr(progress)
+        return complexities
+    
     def run(self):
         # We initialize the lists that will contain the mb of experiences
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones = [],[],[],[],[]

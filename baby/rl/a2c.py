@@ -14,6 +14,8 @@ from collections import deque
 
 from tensorflow import losses
 
+import numpy as np
+
 # Tuned
 from baby.rl.runner import Runner
 from baby.rl.policies import build_policy
@@ -246,6 +248,10 @@ def learn(
         nseconds = time.time()-tstart
         
         model.update_loss_trainer()
+        # Code for Automatic Domain Randomization ADR
+        # Update baby_env parameter with complexity progression
+        progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
+        complexities = runner.adr()
 
         # Calculate the fps (frame per second)
         fps = int((update*nbatch)/nseconds)
@@ -262,6 +268,8 @@ def learn(
             logger.record_tabular("explained_variance", float(ev))
             logger.record_tabular("eprewmean", safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.record_tabular("eplenmean", safemean([epinfo['l'] for epinfo in epinfobuf]))
+            
+            logger.record_tabular("complexity", np.mean(complexities))
             logger.dump_tabular()
 
             if model_save_path is not None:
