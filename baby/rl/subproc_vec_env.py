@@ -1,7 +1,7 @@
 import multiprocessing as mp
 
 import numpy as np
-from baselines.common.vec_env import VecEnv, CloudpickleWrapper, clear_mpi_env_vars
+from baselines.common.vec_env import VecEnv, CloudpickleWrapper
 
 
 def worker(remote, parent_remote, env_fn_wrappers):
@@ -64,8 +64,7 @@ class SubprocVecEnv(VecEnv):
                    for (work_remote, remote, env_fn) in zip(self.work_remotes, self.remotes, env_fns)]
         for p in self.ps:
             p.daemon = True  # if the main process crashes, we should not cause things to hang
-            with clear_mpi_env_vars():
-                p.start()
+            p.start()
         for remote in self.work_remotes:
             remote.close()
 
