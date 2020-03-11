@@ -20,7 +20,7 @@ class Runner(AbstractEnvRunner):
 
     def adr(self, progress):
         # Automatic Domain Randomization
-        complexities = self.env.adr(progress)
+        complexities = self.env.adr([progress for _ in range(len(self.env.remotes))])
         return complexities
     
     def run(self):
