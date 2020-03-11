@@ -11,7 +11,7 @@ import time
 import pathlib
 import json
 
-from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
+from baby.rl.subproc_vec_env import SubprocVecEnv
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines import logger
 
@@ -81,7 +81,7 @@ def xp(
 ):
     kill_prev_network()
 
-    dir_xp = 'baby_transfer_st_lt_evo'
+    dir_xp = 'baby_transfer_st_lt_adr'
 
     d=datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d--%H-%M-%S')
     simu_name=f"env{env_name}_lr{lr}_nsteps{nsteps}_{model_type}_{network_archi[0][0]}filters_{len(network_archi)}layers_ent{ent_coef}_gamma{gamma}"
