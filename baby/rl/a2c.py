@@ -251,7 +251,7 @@ def learn(
         # Code for Automatic Domain Randomization ADR
         # Update baby_env parameter with complexity progression
         progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
-        complexities = runner.adr()
+        complexities = runner.adr(progress)
 
         # Calculate the fps (frame per second)
         fps = int((update*nbatch)/nseconds)
