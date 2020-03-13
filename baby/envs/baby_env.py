@@ -28,9 +28,9 @@ default_conf = {
     'validation_threshold': 0.8,
     # Sigma of gaussian filter for prediction depending on delta time
     # ADR : start deterministic :)
-    'sigma_prediction': 0.0, # prev=1.0 for training/transfer // prev=0.1
-    'gamma_gaussian_value': 0.0,
-    'sigma_gaussian_value': 0.0,
+    'sigma_prediction': 1.0, # prev=1.0 for training/transfer // prev=0.1
+    'gamma_gaussian_value': 1.5,
+    'sigma_gaussian_value': 2.0,
     # Reward system
     'reward': {
         # Reward at each step
@@ -43,13 +43,14 @@ default_conf = {
 }
 
 # Range for Automatic Domain Randomization
-conf_adr = {            
+conf_adr = {
+    'activated': 0,
     # factor of ground truth modification
-    'alpha_ground_truth': [0.1,1.0],
+    'alpha_ground_truth': [0.6,1.4],
     # Sigma of gaussian filter for prediction depending on delta time
-    'sigma_prediction': [0.0, 2.0], # prev=1.0 for training/transfer // prev=0.1
-    'gamma_gaussian_value': [0.0, 3.0],
-    'sigma_gaussian_value': [0.0, 2.0],
+    'sigma_prediction': [0.8, 1.2], # prev=1.0 for training/transfer // prev=0.1
+    'gamma_gaussian_value': [1.2, 1.8],
+    'sigma_gaussian_value': [0.8, 1.2],
 }
 
 class BabyEnv(gym.Env):
@@ -71,20 +72,24 @@ class BabyEnv(gym.Env):
                                        dtype=np.float32)
         
     def adr(self, progress):
-        complexity = []
-        
-        for conf_key in conf_adr.keys():
-            param_var = conf_adr[conf_key]
+        if conf_adr['activated']:
+            complexity = []
             
-            gamma = np.random.normal(loc=progress,scale=0.2)
-            value = gamma*(param_var[1] - param_var[0]) + param_var[0]
-            value = np.clip(value, param_var[0], param_var[1])
-            
-            # Modify real conf
-            self.conf[conf_key] = value
-            complexity.append(value)
-            
-        return np.mean(complexity)
+            for conf_key in conf_adr.keys():
+                param_var = conf_adr[conf_key]
+                
+                gamma = np.random.normal(loc=progress,scale=0.2)
+                value = gamma*(param_var[1] - param_var[0]) + param_var[0]
+                value = np.clip(value, param_var[0], param_var[1])
+                
+                # Modify real conf
+                self.conf[conf_key] = value
+                complexity.append(value)
+                
+            return np.mean(complexity)
+        else:
+            # Deactivated ADR solution
+            return 0.0
         
     def reset(self):
         self.t = 0
