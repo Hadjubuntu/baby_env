@@ -157,6 +157,7 @@ class Model(object):
         self.step_model = step_model
         self.step = step_model.step
         self.value = step_model.value
+        self.value_lt = step_model.value_lt
         self.initial_state = step_model.initial_state
         self.save = functools.partial(tf_util.save_variables, sess=sess)
         self.load = functools.partial(tf_util.load_variables, sess=sess)
