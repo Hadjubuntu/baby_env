@@ -26,17 +26,22 @@ class Runner(AbstractEnvRunner):
     def run(self):
         # We initialize the lists that will contain the mb of experiences
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones = [],[],[],[],[]
+        
+        mb_values_lt, mb_rewards_lt = [], []
+        
         mb_states = self.states
         epinfos = []
         for n in range(self.nsteps):
             # Given observations, take action and value (V(s))
             # We already have self.obs because Runner superclass run self.obs[:] = env.reset() on init
-            actions, values, states, _ = self.model.step(self.obs, S=self.states, M=self.dones)
+            actions, values, values_lt, states, _ = self.model.step(self.obs, S=self.states, M=self.dones)
 
             # Append the experiences
             mb_obs.append(np.copy(self.obs))
             mb_actions.append(actions)
             mb_values.append(values)
+            mb_values.append(values_lt)
+            mb_values_lt.append(values_lt)
             mb_dones.append(self.dones)
 
             # Take actions in env and look the results
@@ -48,6 +53,8 @@ class Runner(AbstractEnvRunner):
             self.dones = dones
             self.obs = obs
             mb_rewards.append(rewards)
+            mb_rewards_lt.append(rewards * dones)
+            
         mb_dones.append(self.dones)
 
         # Batch of steps to batch of rollouts
@@ -55,11 +62,16 @@ class Runner(AbstractEnvRunner):
         mb_rewards = np.asarray(mb_rewards, dtype=np.float32).swapaxes(1, 0)
         mb_actions = np.asarray(mb_actions, dtype=self.model.train_model.action.dtype.name).swapaxes(1, 0)
         mb_values = np.asarray(mb_values, dtype=np.float32).swapaxes(1, 0)
+        mb_values_lt = np.asarray(mb_values_lt, dtype=np.float32).swapaxes(1, 0)
         mb_dones = np.asarray(mb_dones, dtype=np.bool).swapaxes(1, 0)
         mb_masks = mb_dones[:, :-1]
         mb_dones = mb_dones[:, 1:]
+        mb_rewards_lt = np.asarray(mb_rewards_lt, dtype=np.float32).swapaxes(1, 0)
 
 
+        # Store long-term reward
+        mb_rewards_lt = mb_rewards_lt.flatten()
+        
         # Store short-term reward
         mb_rewards_short_term = np.copy(mb_rewards)
         mb_rewards_short_term = mb_rewards_short_term.flatten()
@@ -82,4 +94,15 @@ class Runner(AbstractEnvRunner):
         mb_rewards = mb_rewards.flatten()
         mb_values = mb_values.flatten()
         mb_masks = mb_masks.flatten()
-        return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values, epinfos, mb_rewards_short_term
+        return (
+            mb_obs,
+            mb_states,
+            mb_rewards,
+            mb_masks,
+            mb_actions,
+            mb_values,
+            mb_values_lt,
+            epinfos,
+            mb_rewards_short_term,
+            mb_rewards_lt
+        )

@@ -36,7 +36,7 @@ class Model(object):
     def __init__(self, policy, env, nsteps,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear',
-            st_coef=1.0, pg_coef=0.1):
+            st_coef=1.0, pg_coef=1.0, pg_lt_coef=0.1):
 
         sess = tf_util.get_session()
         nenvs = env.num_envs
@@ -46,6 +46,7 @@ class Model(object):
         self.start_vf_coef = vf_coef
         self.start_st_coef = st_coef
         self.start_pg_coef = pg_coef
+        self.start_pg_lt_coef = pg_lt_coef
         self.max_grad_norm = max_grad_norm
 
 
@@ -58,7 +59,9 @@ class Model(object):
 
         A = tf.placeholder(train_model.action.dtype, train_model.action.shape)
         ADV = tf.placeholder(tf.float32, [nbatch])
+        ADV_LT = tf.placeholder(tf.float32, [nbatch])
         R = tf.placeholder(tf.float32, [nbatch])
+        R_LT = tf.placeholder(tf.float32, [nbatch])
         LR = tf.placeholder(tf.float32, [])
         SR = tf.placeholder(tf.float32, [nbatch])
 
@@ -78,8 +81,17 @@ class Model(object):
         
         # Short-term loss        
         st_loss = tf.reduce_mean(SR * neglogpac)
+        
+        # Long-term
+        vf_loss_lt = losses.mean_squared_error(tf.squeeze(train_model.vf_lt), R_LT)        
+        pg_loss_lt = tf.reduce_mean(ADV_LT * neglogpac)
 
-        loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
+        # Loss:
+        # PG loss full-term + long-term
+        # Value loss: full-term + long-term
+        # Entropy (as usual)
+        # Short-term loss: direct reward
+        loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss + pg_lt_coef * pg_loss_lt + vf_coef * vf_loss_lt
 
         # Update parameters using loss
         # 1. Get the model parameters
@@ -102,9 +114,8 @@ class Model(object):
 
         lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
-        def update_loss_trainer():
-            # Note: in this test, pg_loss represents long-term loss (reward=1 if done)
-            loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
+        def update_loss_trainer(progress):
+            loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss + pg_lt_coef * pg_loss_lt + vf_coef * vf_loss_lt
 
             # Update parameters using loss
             # 1. Get the model parameters
@@ -120,22 +131,24 @@ class Model(object):
             _train = trainer.apply_gradients(grads)
             
 
-        def train(obs, states, rewards, masks, actions, values, rewards_short_term):
+        def train(obs, states, rewards, masks, actions, values, values_lt, rewards_st, rewards_lt):
             # Here we calculate advantage A(s,a) = R + yV(s') - V(s)
             # rewards = R + yV(s')
             advs = rewards - values
+            advs_lt = rewards_lt - values_lt
+            
             for step in range(len(obs)):
                 cur_lr = lr.value()
 
-            td_map = {train_model.X:obs, A:actions, ADV:advs, R:rewards, LR:cur_lr, SR:rewards_short_term}
+            td_map = {train_model.X:obs, A:actions, ADV:advs, R:rewards, LR:cur_lr, SR:rewards_st, ADV_LT:advs_lt, R_LT:rewards_lt}
             if states is not None:
                 td_map[train_model.S] = states
                 td_map[train_model.M] = masks
-            policy_loss, value_loss, policy_entropy, short_term_loss, _ = sess.run(
-                [pg_loss, vf_loss, entropy, st_loss, _train],
+            policy_loss, value_loss, policy_entropy, short_term_loss, value_lt_loss, policy_lt_loss, _ = sess.run(
+                [pg_loss, vf_loss, entropy, st_loss, vf_loss_lt, pg_loss_lt, _train],
                 td_map
             )
-            return policy_loss, value_loss, policy_entropy, short_term_loss
+            return policy_loss, value_loss, policy_entropy, short_term_loss, value_lt_loss, policy_lt_loss
 
 
         self.train = train
@@ -241,16 +254,20 @@ def learn(
 
     for update in range(1, total_timesteps//nbatch+1):
         # Get mini batch of experiences
-        obs, states, rewards, masks, actions, values, epinfos, rewards_short_term = runner.run()
+        obs, states, rewards, masks, actions, values, values_lt, epinfos, rewards_st, rewards_lt = runner.run()
         epinfobuf.extend(epinfos)
 
-        policy_loss, value_loss, policy_entropy, short_term_loss = model.train(obs, states, rewards, masks, actions, values, rewards_short_term)
+        policy_loss, value_loss, policy_entropy, st_loss, v_lt_loss, pg_lt_loss = model.train(obs, states, rewards, masks, actions, values, values_lt, rewards_st, rewards_lt)
         nseconds = time.time()-tstart
         
-        model.update_loss_trainer()
+        # Compute training progress
+        progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
+        
+        # Update loss trainer
+        model.update_loss_trainer(progress)
+        
         # Code for Automatic Domain Randomization ADR
         # Update baby_env parameter with complexity progression
-        progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
         complexities = runner.adr(progress)
 
         # Calculate the fps (frame per second)
@@ -264,7 +281,9 @@ def learn(
             logger.record_tabular("fps", fps)
             logger.record_tabular("policy_entropy", float(policy_entropy))
             logger.record_tabular("value_loss", float(value_loss))
-            logger.record_tabular("short_term_loss", float(short_term_loss))
+            logger.record_tabular("short_term_loss", float(st_loss))
+            logger.record_tabular("value_lt_loss", float(v_lt_loss))
+            logger.record_tabular("pg_lt_loss", float(pg_lt_loss))
             logger.record_tabular("explained_variance", float(ev))
             logger.record_tabular("eprewmean", safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.record_tabular("eplenmean", safemean([epinfo['l'] for epinfo in epinfobuf]))

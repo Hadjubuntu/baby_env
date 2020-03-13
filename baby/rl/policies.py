@@ -40,7 +40,9 @@ class PolicyWithValue(object):
 
         vf_latent = vf_latent if vf_latent is not None else latent
 
-        vf_latent = tf.layers.flatten(vf_latent)
+        vf_latent = tf.layers.flatten(vf_latent)        
+        vf_lt_latent = tf.layers.flatten(vf_latent)
+        
         latent = tf.layers.flatten(latent)
 
         # Based on the action space, will select what probability distribution type
@@ -62,6 +64,9 @@ class PolicyWithValue(object):
         else:
             self.vf = fc(vf_latent, 'vf', 1)
             self.vf = self.vf[:,0]
+            
+        self.vf_lt = fc(vf_lt_latent, 'vf_lt', 1)
+        self.vf_lt = self.vf_lt[:,0]
 
     def _evaluate(self, variables, observation, **extra_feed):
         sess = self.sess
@@ -90,27 +95,16 @@ class PolicyWithValue(object):
         (action, value estimate, next state, negative log likelihood of the action under current policy parameters) tuple
         """
 
-        a, v, state, neglogp = self._evaluate([self.action, self.vf, self.state, self.neglogp], observation, **extra_feed)
+        a, v, v_lt, state, neglogp = self._evaluate([self.action, self.vf, self.vf_lt, self.state, self.neglogp], observation, **extra_feed)
         if state.size == 0:
             state = None
-        return a, v, state, neglogp
+        return a, v, v_lt, state, neglogp
 
     def value(self, ob, *args, **kwargs):
-        """
-        Compute value estimate(s) given the observation(s)
-
-        Parameters:
-        ----------
-
-        observation     observation data (either single or a batch)
-
-        **extra_feed    additional data such as state or mask (names of the arguments should match the ones in constructor, see __init__)
-
-        Returns:
-        -------
-        value estimate
-        """
         return self._evaluate(self.vf, ob, *args, **kwargs)
+    
+    def value_lt(self, ob, *args, **kwargs):
+        return self._evaluate(self.vf_lt, ob, *args, **kwargs)
 
     def save(self, save_path):
         tf_util.save_state(save_path, sess=self.sess)
