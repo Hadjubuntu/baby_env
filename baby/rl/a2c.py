@@ -6,7 +6,6 @@ from baselines import logger
 
 from baselines.common import set_global_seeds, explained_variance
 from baselines.common import tf_util
-from baselines.common.policies import build_policy
 
 
 from baselines.a2c.utils import Scheduler, find_trainable_variables
@@ -17,6 +16,7 @@ from tensorflow import losses
 
 # Tuned
 from baby.rl.runner import Runner
+from baby.rl.policies import build_policy
 
 
 class Model(object):
@@ -34,11 +34,17 @@ class Model(object):
     def __init__(self, policy, env, nsteps,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear',
-            st_coef=0.25):
+            st_coef=1.0, pg_coef=0.1):
 
         sess = tf_util.get_session()
         nenvs = env.num_envs
         nbatch = nenvs*nsteps
+        
+        self.start_ent_coef = ent_coef
+        self.start_vf_coef = vf_coef
+        self.start_st_coef = st_coef
+        self.start_pg_coef = pg_coef
+        self.max_grad_norm = max_grad_norm
 
 
         with tf.variable_scope('a2c_model', reuse=tf.AUTO_REUSE):
@@ -71,7 +77,7 @@ class Model(object):
         # Short-term loss        
         st_loss = tf.reduce_mean(SR * neglogpac)
 
-        loss = pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
+        loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
 
         # Update parameters using loss
         # 1. Get the model parameters
@@ -94,6 +100,23 @@ class Model(object):
 
         lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
+        def update_loss_trainer():
+            loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
+
+            # Update parameters using loss
+            # 1. Get the model parameters
+            params = find_trainable_variables("a2c_model")
+
+            # 2. Calculate the gradients
+            grads = tf.gradients(loss, params)
+            if self.max_grad_norm is not None:
+                # Clip the gradients (normalize)
+                grads, grad_norm = tf.clip_by_global_norm(grads, self.max_grad_norm)
+            grads = list(zip(grads, params))
+            
+            _train = trainer.apply_gradients(grads)
+            
+
         def train(obs, states, rewards, masks, actions, values, rewards_short_term):
             # Here we calculate advantage A(s,a) = R + yV(s') - V(s)
             # rewards = R + yV(s')
@@ -113,6 +136,7 @@ class Model(object):
 
 
         self.train = train
+        self.update_loss_trainer = update_loss_trainer
         self.train_model = train_model
         self.step_model = step_model
         self.step = step_model.step
@@ -219,6 +243,8 @@ def learn(
 
         policy_loss, value_loss, policy_entropy, short_term_loss = model.train(obs, states, rewards, masks, actions, values, rewards_short_term)
         nseconds = time.time()-tstart
+        
+        model.update_loss_trainer()
 
         # Calculate the fps (frame per second)
         fps = int((update*nbatch)/nseconds)

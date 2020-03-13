@@ -35,7 +35,9 @@ default_conf = {
         # Reward at each step
         'timestep': 0,
         # Reward for each validated element
-        'validation': 1,
+        'validation': 0,
+        # Reward at completion (episode done)
+        'done': 1,
     }
 }
 
@@ -100,11 +102,18 @@ class BabyEnv(gym.Env):
         obs = np.append(obs, self.validation, axis=2)
         self.current_obs = obs
 
-        self.cum_rew += rew        
+        # Cumulative reward
+        self.cum_rew += rew
         
         # Status done
         if (self.validation == 0.0).all() or self.t >= (self.conf['max_episode_iteration'] - self.conf['n_frame']):
-            done = True            
+            done = True
+            
+            # Reward if episode done
+            rew = self.conf['reward']['done']  
+            self.cum_rew += rew
+            
+            # Collect info
             info = {'episode': {'r': self.cum_rew, 'l': self.t}}
         
         return obs, rew, done, info
