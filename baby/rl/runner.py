@@ -68,10 +68,6 @@ class Runner(AbstractEnvRunner):
         mb_dones = mb_dones[:, 1:]
         mb_rewards_lt = np.asarray(mb_rewards_lt, dtype=np.float32).swapaxes(1, 0)
 
-
-        # Store long-term reward
-        mb_rewards_lt = mb_rewards_lt.flatten()
-        
         # Store short-term reward
         mb_rewards_short_term = np.copy(mb_rewards)
         mb_rewards_short_term = mb_rewards_short_term.flatten()
@@ -88,12 +84,30 @@ class Runner(AbstractEnvRunner):
                     rewards = discount_with_dones(rewards, dones, self.gamma)
 
                 mb_rewards[n] = rewards
+                
+        # Long-term component
+        # Same for long-term
+        if self.gamma > 0.0:
+            # Discount/bootstrap off value fn
+            last_values = self.model.value_lt(self.obs, S=self.states, M=self.dones).tolist()
+            for n, (rewards_lt, dones, value) in enumerate(zip(mb_rewards_lt, mb_dones, last_values)):
+                rewards_lt = rewards_lt.tolist()
+                dones = dones.tolist()
+                if dones[-1] == 0:
+                    rewards_lt = discount_with_dones(rewards_lt+[value], dones+[0], self.gamma)[:-1]
+                else:
+                    rewards_lt = discount_with_dones(rewards_lt, dones, self.gamma)
+
+                mb_rewards_lt[n] = rewards_lt
 
         mb_actions = mb_actions.reshape(self.batch_action_shape)
 
         mb_rewards = mb_rewards.flatten()
+        mb_rewards_lt = mb_rewards_lt.flatten()        
         mb_values = mb_values.flatten()
+        mb_values_lt = mb_values_lt.flatten()        
         mb_masks = mb_masks.flatten()
+        
         return (
             mb_obs,
             mb_states,
