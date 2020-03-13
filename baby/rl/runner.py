@@ -40,7 +40,6 @@ class Runner(AbstractEnvRunner):
             mb_obs.append(np.copy(self.obs))
             mb_actions.append(actions)
             mb_values.append(values)
-            mb_values.append(values_lt)
             mb_values_lt.append(values_lt)
             mb_dones.append(self.dones)
 
