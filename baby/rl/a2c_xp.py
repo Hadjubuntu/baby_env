@@ -118,7 +118,7 @@ def xp(
         ent_coef=ent_coef,
         max_grad_norm=0.5,
         gamma=gamma,
-        total_timesteps=int(200e6),
+        total_timesteps=int(100e6),
         model_save_path=model_path
     )
     
