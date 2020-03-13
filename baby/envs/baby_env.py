@@ -35,9 +35,9 @@ default_conf = {
         # Reward at each step
         'timestep': 0,
         # Reward for each validated element
-        'validation': 0,
+        'validation': 1,
         # Reward at completion (episode done)
-        'done': 1,
+        'done': 0,
     }
 }
 

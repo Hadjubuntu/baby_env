@@ -101,6 +101,7 @@ class Model(object):
         lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
         def update_loss_trainer():
+            # Note: in this test, pg_loss represents long-term loss (reward=1 if done)
             loss = pg_coef*pg_loss - entropy*ent_coef + vf_loss * vf_coef + st_coef*st_loss
 
             # Update parameters using loss
