@@ -289,6 +289,7 @@ def learn(
             # Calculates if value function is a good predicator of the returns (ev > 1)
             # or if it's just worse than predicting nothing (ev =< 0)
             ev = explained_variance(values, rewards)
+            ev_lt = explained_variance(values_lt, rewards_lt)
             logger.record_tabular("nupdates", update)
             logger.record_tabular("total_timesteps", update*nbatch)
             logger.record_tabular("fps", fps)
@@ -302,6 +303,7 @@ def learn(
 
             # EV
             logger.record_tabular("explained_variance", float(ev))
+            logger.record_tabular("explained_variance_lt", float(ev_lt))
 
             # Log loss coef evo
             logger.record_tabular("st_coef", float(st_coef))
