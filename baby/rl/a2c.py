@@ -134,6 +134,8 @@ class Model(object):
             grads = list(zip(grads, params))
             
             _train = trainer.apply_gradients(grads)
+
+            return pg_coef, st_coef, pg_lt_coef
             
 
         def train(obs, states, rewards, masks, actions, values, values_lt, rewards_st, rewards_lt):
@@ -183,6 +185,7 @@ def learn(
     alpha=0.99,
     gamma=0.99,
     log_interval=100,
+    evo_interval=500,
     load_path=None,
     model_save_path=None,
     **network_kwargs):
@@ -269,8 +272,10 @@ def learn(
         # Compute training progress
         progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
         
-        # Update loss trainer
-        model.update_loss_trainer(progress)
+        # Update loss trainer (with interval for performance)
+        pg_coef, st_coef, pg_lt_coef = 0.0, 0.0, 0.0
+        if update % evo_interval == 0 or update == 1:
+            pg_coef, st_coef, pg_lt_coef = model.update_loss_trainer(progress)
         
         # Code for Automatic Domain Randomization ADR
         # Update baby_env parameter with complexity progression
@@ -286,11 +291,21 @@ def learn(
             logger.record_tabular("total_timesteps", update*nbatch)
             logger.record_tabular("fps", fps)
             logger.record_tabular("policy_entropy", float(policy_entropy))
+
+            # Losses
             logger.record_tabular("value_loss", float(value_loss))
             logger.record_tabular("short_term_loss", float(st_loss))
             logger.record_tabular("value_lt_loss", float(v_lt_loss))
             logger.record_tabular("pg_lt_loss", float(pg_lt_loss))
+
+            # EV
             logger.record_tabular("explained_variance", float(ev))
+
+            # Log loss coef evo
+            logger.record_tabular("st_coef", float(st_coef))
+            logger.record_tabular("pg_coef", float(pg_coef))
+            logger.record_tabular("pg_lt_coef", float(pg_lt_coef))
+
             logger.record_tabular("eprewmean", safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.record_tabular("eplenmean", safemean([epinfo['l'] for epinfo in epinfobuf]))
             
