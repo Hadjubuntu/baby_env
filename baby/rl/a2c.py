@@ -238,7 +238,10 @@ def learn(
     '''
 
 
+    # Log loss coef
+    pg_coef, st_coef, pg_lt_coef = 0.0, 0.0, 0.0
 
+    # Set seeds
     set_global_seeds(seed)
 
     # Get the nb of env
@@ -273,7 +276,6 @@ def learn(
         progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
         
         # Update loss trainer (with interval for performance)
-        pg_coef, st_coef, pg_lt_coef = 0.0, 0.0, 0.0
         if update % evo_interval == 0 or update == 1:
             pg_coef, st_coef, pg_lt_coef = model.update_loss_trainer(progress)
         
