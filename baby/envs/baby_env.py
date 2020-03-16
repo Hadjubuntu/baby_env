@@ -43,11 +43,13 @@ default_conf = {
         # Reward at completion (episode done)
         'done': 0,
     }
+
+    # Use Automatic Domain Randomization
+    'ADR': True
 }
 
 # Range for Automatic Domain Randomization
 conf_adr = {
-    'activated': 1,
     # factor of ground truth modification
     'alpha_ground_truth': [0.6,1.4],
     # Sigma of gaussian filter for prediction depending on delta time
@@ -75,7 +77,7 @@ class BabyEnv(gym.Env):
                                        dtype=np.float32)
         
     def adr(self, progress):
-        if conf_adr['activated']:
+        if self.conf['ADR']:
             complexity = []
             
             for conf_key in conf_adr.keys():
