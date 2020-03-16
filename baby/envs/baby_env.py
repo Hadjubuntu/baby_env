@@ -42,10 +42,10 @@ default_conf = {
         'validation': 1,
         # Reward at completion (episode done)
         'done': 0,
-    }
+    },
 
     # Use Automatic Domain Randomization
-    'ADR': True
+    'ADR': True,
 }
 
 # Range for Automatic Domain Randomization
