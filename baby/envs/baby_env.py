@@ -24,13 +24,16 @@ default_conf = {
     'max_episode_iteration': 1000,
     # factor of ground truth modification
     'alpha_ground_truth': 0.8,
+    'alpha_slow_ground_truth': 0.1,
+    # Number of slow frames (with slow alpha factor)
+    'alpha_slow_freq': 2,
     # Minimum value of ground truth to be validated
     'validation_threshold': 0.8,
     # Sigma of gaussian filter for prediction depending on delta time
-    # ADR : start deterministic :)
     'sigma_prediction': 1.0, # prev=1.0 for training/transfer // prev=0.1
-    'gamma_gaussian_value': 1.5,
-    'sigma_gaussian_value': 2.0,
+    'sigma_gaussian_value': 0.5,
+    'gamma_gaussian_value': 0.05,
+
     # Reward system
     'reward': {
         # Reward at each step
@@ -44,13 +47,13 @@ default_conf = {
 
 # Range for Automatic Domain Randomization
 conf_adr = {
-    'activated': 0,
+    'activated': 1,
     # factor of ground truth modification
     'alpha_ground_truth': [0.6,1.4],
     # Sigma of gaussian filter for prediction depending on delta time
-    'sigma_prediction': [0.8, 1.2], # prev=1.0 for training/transfer // prev=0.1
-    'gamma_gaussian_value': [1.2, 1.8],
-    'sigma_gaussian_value': [0.8, 1.2],
+    'sigma_prediction': [0.1, 0.4],
+    'sigma_gaussian_value': [0.2,1.5],
+    'gamma_gaussian_value': [0.0, 1.0],
 }
 
 class BabyEnv(gym.Env):
@@ -155,6 +158,9 @@ class BabyEnv(gym.Env):
 
     
     def f_predict_tuned(self, truth_frame, dt):
+        """
+        Tuned to imitate uncertainty behaviour depending on gd values
+        """
         # Add blur depending on frame time
         sigma_t = self.conf['sigma_prediction'] * np.sqrt(dt+1)
 
@@ -175,13 +181,20 @@ class BabyEnv(gym.Env):
         pred = gaussian_filter(truth_frame, sigma=self.conf['sigma_prediction']*(dt+1))
         
         return pred
+
+    def f_predict_as_simfc(self, truth_frame, dt):
+        sigma = self.conf['sigma_prediction'] - self.conf['sigma_gaussian_value'] * truth_frame + self.conf['gamma_gaussian_value'] * dt
+        pred = np.copy(truth_frame) + sigma * np.random.randn(*(truth_frame.shape))
+        pred = np.clip(pred, 0.0, 1.0)
+        
+        return pred
     
     def predict(self, t):
         n_frame = self.conf['n_frame']
         pred_t_tn = np.copy(self.ground_truth[..., t:(t+n_frame)])
                 
         for i in range(self.conf['n_frame']):
-            pred_t_tn[..., i] = self.f_predict_tuned(pred_t_tn[..., i], i)            
+            pred_t_tn[..., i] = self.f_predict_as_simfc(pred_t_tn[..., i], i)            
               
         # Clip all values if outside [0, 1]    
         pred_t_tn = np.clip(pred_t_tn, 0.0, 1.0)
@@ -189,14 +202,14 @@ class BabyEnv(gym.Env):
         return pred_t_tn
         
     
-    def f_truth(self, prev_frame):
+    def f_truth(self, prev_frame, alpha):
         """
         Apply function to previous frame to compute next frame
         """
         next_frame = np.copy(prev_frame)
         
         rand_frame = (self.np_random.rand(self.conf['n-yaxis'], self.conf['n-xaxis'])-0.5)
-        next_frame = next_frame + self.conf['alpha_ground_truth'] * gaussian_filter(rand_frame, sigma=1.0)        
+        next_frame = next_frame + alpha * gaussian_filter(rand_frame, sigma=1.0)        
         
         # Need to clip here to prevent from diverging recursively
         next_frame = np.clip(next_frame, 0.0, 1.0)
@@ -212,9 +225,19 @@ class BabyEnv(gym.Env):
         f0 = np.clip(f0, 0.0, 1.0)
                
         tmp[..., 0] = f0
+        i_slow = 0
         for t in range(1, self.conf['max_episode_iteration']):
             prev_f = tmp[..., t-1]
-            tmp[..., t] = self.f_truth(prev_f)
+
+            alpha = self.conf['alpha_ground_truth']
+            if i_slow < self.conf['alpha_slow_freq']:
+                alpha = self.conf['alpha_slow_ground_truth']
+                i_slow += 1
+            else:
+                i_slow = 0
+
+            tmp[..., t] = self.f_truth(prev_f, alpha)
+
 
         self.ground_truth = tmp
             
