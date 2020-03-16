@@ -36,7 +36,7 @@ class Model(object):
     def __init__(self, policy, env, nsteps,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear',
-            st_coef=1.0, pg_coef=1.0, pg_lt_coef=0.1):
+            st_coef=1.0, pg_coef=0.5, pg_lt_coef=0.2):
 
         sess = tf_util.get_session()
         nenvs = env.num_envs
@@ -116,9 +116,9 @@ class Model(object):
         def update_loss_trainer(progress):
             
             # Update all coef regarding progression
-            pg_coef = (1.0-progress) * self.start_pg_coef # Start at 1.0, end at 0.0 !
-            st_coef = (1.0-progress) * self.start_st_coef + 0.1 # Terminate at 0.1 (hard-coded, improve this)
-            pg_lt_coef = progress * (1.0 - self.start_pg_lt_coef) + self.start_pg_lt_coef # Start at 0.1, terminte at 1.0
+            pg_coef = np.clip(self.start_pg_coef * (1.0 - 4.0 * progress), 0.0, 1.0)
+            st_coef = np.clip(self.start_st_coef * (1.0 - 2.0 * progress), 0.1, 1.0)
+            pg_lt_coef = np.clip(self.start_pg_lt_coef * 4.0* progress, self.start_pg_lt_coef, 1.0)
             
             loss = pg_coef*pg_loss - entropy*ent_coef + (vf_loss+vf_loss_lt) * vf_coef + st_coef*st_loss + pg_lt_coef * pg_loss_lt
 
