@@ -53,9 +53,9 @@ conf_adr = {
     # factor of ground truth modification
     'alpha_ground_truth': [0.6,1.4],
     # Sigma of gaussian filter for prediction depending on delta time
-    'sigma_prediction': [0.1, 0.4],
-    'sigma_gaussian_value': [0.2,1.5],
-    'gamma_gaussian_value': [0.0, 1.0],
+    'sigma_prediction': [0.1, 0.3],
+    'sigma_gaussian_value': [0.05, 0.2],
+    'gamma_gaussian_value': [0.0, 0.1],
 }
 
 class BabyEnv(gym.Env):
