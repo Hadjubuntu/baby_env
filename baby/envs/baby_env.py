@@ -125,9 +125,6 @@ class BabyEnv(gym.Env):
             rew += self.conf['reward']['validation']
             validation_frame[y, x] = 0.0
             self.validation = np.expand_dims(validation_frame, -1)
-
-        # Error pred/obs
-        # print(f"Diff={self.current_obs[..., 0][y, x] - current_truth[y, x]}")
         
         rew += self.conf['reward']['timestep']
         
@@ -184,19 +181,13 @@ class BabyEnv(gym.Env):
         
         return pred
 
-    def f_predict_as_simfc(self, truth_frame, dt):
-        sigma = self.conf['sigma_prediction'] - self.conf['sigma_gaussian_value'] * truth_frame + self.conf['gamma_gaussian_value'] * dt
-        pred = np.copy(truth_frame) + sigma * np.random.randn(*(truth_frame.shape))
-        pred = np.clip(pred, 0.0, 1.0)
-        
-        return pred
     
     def predict(self, t):
         n_frame = self.conf['n_frame']
         pred_t_tn = np.copy(self.ground_truth[..., t:(t+n_frame)])
                 
         for i in range(self.conf['n_frame']):
-            pred_t_tn[..., i] = self.f_predict_as_simfc(pred_t_tn[..., i], i)            
+            pred_t_tn[..., i] = self.f_predict_tuned(pred_t_tn[..., i], i)            
               
         # Clip all values if outside [0, 1]    
         pred_t_tn = np.clip(pred_t_tn, 0.0, 1.0)

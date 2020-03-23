@@ -36,7 +36,7 @@ class Model(object):
     def __init__(self, policy, env, nsteps,
             ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear',
-            st_coef=1.0, pg_coef=0.5, pg_lt_coef=0.2):
+            st_coef=0.2, pg_coef=1.0, pg_lt_coef=0.0):
 
         sess = tf_util.get_session()
         nenvs = env.num_envs
@@ -114,11 +114,10 @@ class Model(object):
         lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
         def update_loss_trainer(progress):
-            
             # Update all coef regarding progression
-            pg_coef = np.clip(self.start_pg_coef * (1.0 - 4.0 * progress), 0.0, 1.0)
-            st_coef = np.clip(self.start_st_coef * (1.0 - 2.0 * progress), 0.1, 1.0)
-            pg_lt_coef = np.clip(self.start_pg_lt_coef + 4.0* progress, self.start_pg_lt_coef, 1.0)
+            pg_coef = np.clip(self.start_pg_coef * (1.0 - 2.0 * progress), 0.0, 1.0)
+            st_coef = np.clip(self.start_st_coef * (1.0 - 2.0 * progress), 0.0, 1.0)
+            pg_lt_coef = np.clip(self.start_pg_lt_coef + 2.0* progress, self.start_pg_lt_coef, 1.0)
             
             loss = pg_coef*pg_loss - entropy*ent_coef + (vf_loss+vf_loss_lt) * vf_coef + st_coef*st_loss + pg_lt_coef * pg_loss_lt
 
@@ -188,6 +187,7 @@ def learn(
     evo_interval=500,
     load_path=None,
     model_save_path=None,
+    use_loss_evo=False,
     **network_kwargs):
 
     '''
@@ -231,6 +231,8 @@ def learn(
     gamma:              float, reward discounting parameter (default: 0.99)
 
     log_interval:       int, specifies how frequently the logs are printed out (default: 100)
+
+    use_loss_evo:       bool, tells wheter to make evolution on loss to take into account long-term reward instead of short-term while training
 
     **network_kwargs:   keyword arguments to the policy / network builder. See baselines.common/policies.py/build_policy and arguments to a particular type of network
                         For instance, 'mlp' network architecture has arguments num_hidden and num_layers.
@@ -276,7 +278,7 @@ def learn(
         progress = update*nbatch / total_timesteps # Progression from 0.0 to 1.0
         
         # Update loss trainer (with interval for performance)
-        if update % evo_interval == 0 or update == 1:
+        if (update % evo_interval == 0 or update == 1) and use_loss_evo:
             pg_coef, st_coef, pg_lt_coef = model.update_loss_trainer(progress)
         
         # Code for Automatic Domain Randomization ADR
@@ -306,9 +308,10 @@ def learn(
             logger.record_tabular("explained_variance_lt", float(ev_lt))
 
             # Log loss coef evo
-            logger.record_tabular("st_coef", float(st_coef))
-            logger.record_tabular("pg_coef", float(pg_coef))
-            logger.record_tabular("pg_lt_coef", float(pg_lt_coef))
+            if use_loss_evo:
+                logger.record_tabular("st_coef", float(st_coef))
+                logger.record_tabular("pg_coef", float(pg_coef))
+                logger.record_tabular("pg_lt_coef", float(pg_lt_coef))
 
             logger.record_tabular("eprewmean", safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.record_tabular("eplenmean", safemean([epinfo['l'] for epinfo in epinfobuf]))
