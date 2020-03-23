@@ -12,7 +12,6 @@ from typing import List
 import numpy as np
 
 from baby.mcts.myzero.node import Node
-from baby.mcts.myzero.minmaxstats import MinMaxStats
 
 from baby.heuristic.greedy import GreedyHeuristic
 
@@ -30,7 +29,6 @@ default_conf = {
 class MyZero:
     def __init__(self, env):
         self.conf = default_conf
-        self.min_max_stats = MinMaxStats()
         self.env = env
         self.policy_exploration = GreedyHeuristic(n=self.conf['n_exploration'])
         self.policy_simulation = GreedyHeuristic(n=1)
