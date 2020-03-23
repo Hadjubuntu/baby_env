@@ -45,7 +45,7 @@ default_conf = {
     },
 
     # Use Automatic Domain Randomization
-    'ADR': True,
+    'ADR': False,
 }
 
 # Range for Automatic Domain Randomization
