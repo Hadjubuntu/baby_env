@@ -17,18 +17,19 @@ from baby.heuristic.greedy import GreedyHeuristic
 
 default_conf = {
     # Number of simulations
-    'num_simulations': 100,
+    'num_simulations': 1000,
     # Number of action chosen during 'expand_node'
-    'n_exploration': 10,
+    'n_exploration': 20,
     # Exploration factor (c)
     'exploration_factor': 1.41,
     # Gamma factor
-    'gamma': 0.995,
+    'gamma': 0.997,
 }
 
 class MyZero:
     def __init__(self, env):
         self.conf = default_conf
+
         self.env = env
         self.policy_exploration = GreedyHeuristic(n=self.conf['n_exploration'])
         self.policy_simulation = GreedyHeuristic(n=1)
@@ -49,26 +50,35 @@ class MyZero:
         Train MCTS
         """
         node = self.root()
-        # Store search path for backpropagation
-        search_path = [node]
 
-        for _ in range(self.conf['num_simulations']):
+        for n_simu in range(self.conf['num_simulations']):
+            next_node = node
+
+            # Store search path for backpropagation
+            search_path = [next_node]
+
             # Select node children using UCB scoring unti a leaf is reached
-            while node.expanded():
-                action, node = self.selection(node)
-                search_path.append(node)
+            while next_node.expanded() and not next_node.terminal():
+                action, next_node = self.selection(next_node)
+                search_path.append(next_node)
 
-            # Execute Monte-Carlo simulation to estimate children values
-            self.expand_node(node, self.conf['n_exploration'])
+            if not next_node.terminal():
+                # Execute Monte-Carlo simulation to estimate children values
+                self.expand_node(next_node, self.conf['n_exploration'])
 
-            # Simulation
-            self.simulation(node)
+                # Simulation
+                self.simulation(next_node)
 
-            # Backpropagate Q-values
-            self.backpropagate(search_path)
+                # Backpropagate Q-values
+                self.backpropagate(search_path)
 
-            print(f"#{search_path[0].visit_count} // Score root = {search_path[0].reward}")
-    
+                t = np.min([child.infos['timesteps'] for child in search_path[-1].children])
+                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].reward} // timesteps={t} // search_path_length={len(search_path)}")
+            else:
+                # Simulation
+                self.simulation(next_node)
+                print("Revisit terminal node")
+             
 
     def root(self):
         """
@@ -105,11 +115,9 @@ class MyZero:
 
         # For each action, create a child node
         for action in self.policy_exploration.act(c_obs):
-            # Load current enœv state and act
+            # Load current env state and act
             env_child = node.get_state()
             env_child.step(action)
-
-            # print(f"Take {action} action for env {env_child}")
             
             child = Node(env_child)
             children.append(child)
@@ -121,20 +129,21 @@ class MyZero:
         pi_simu = self.policy_simulation
 
         for idx, child in enumerate(node.children):
+            
             env = child.get_state()
             obs = env.current_obs
-            done = False
-
+            done = child.done
+            
             while not done:
                 action = pi_simu.act(obs)
-                obs, rew, done, info = env.step(action)
-            
+                obs, rew, done, info = env.step(action)               
+                
             # Reward at leaf is gamma power timestep
             child.reward = self.conf['gamma'] ** env.t
             child.cum_rewards = child.reward
             child.visit_count += 1
+            child.infos['timesteps'] = env.t
 
-            # print(f"Child #{idx} ends after {env.t} steps")
 
     def backpropagate(self, search_path: List):
         # From leaf node to root
@@ -149,4 +158,5 @@ class MyZero:
         #     print(f"Node {node.value()} / {node.visit_count}")
 
     def ucb(self, node: Node, node_parent: Node):
-        return node.value() + self.conf['exploration_factor'] * np.sqrt(node_parent.visit_count / node.visit_count)
+        explo_factor = self.conf['exploration_factor'] * np.sqrt(node_parent.visit_count / node.visit_count)
+        return node.value() + explo_factor

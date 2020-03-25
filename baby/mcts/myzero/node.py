@@ -9,11 +9,18 @@ class Node():
         self.reward = 0.0
         self.cum_rewards = 0.0
         self.children = []
+        self.infos = {}
 
+        self.done = (env_state.validation == 0.0).all()
         self.state = cloudpickle.dumps(env_state)
 
+    def terminal(self):
+        return self.done
+
     def get_state(self):
-        return pickle.loads(self.state)
+        state = pickle.loads(self.state)
+
+        return state
 
     def expanded(self):
         return (len(self.children) > 0)
