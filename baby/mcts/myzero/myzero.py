@@ -19,9 +19,9 @@ default_conf = {
     # Number of simulations
     'num_simulations': 1000,
     # Number of action chosen during 'expand_node'
-    'n_exploration': 20,
+    'n_exploration': 4,
     # Exploration factor (c)
-    'exploration_factor': 1.41,
+    'exploration_factor': 0.0005,
     # Gamma factor
     'gamma': 0.997,
 }
