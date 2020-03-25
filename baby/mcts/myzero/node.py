@@ -8,7 +8,9 @@ class Node():
         self.visit_count = 0
         self.reward = 0.0
         self.cum_rewards = 0.0
-        self.children = []
+
+        # Dict for childre action to child Node
+        self.children = {}
         self.infos = {}
 
         self.done = (env_state.validation == 0.0).all()
