@@ -18,6 +18,8 @@ from baby.mcts.myzero.model_value import ModelValue
 from baby.heuristic.greedy import GreedyHeuristic
 
 default_conf = {
+    # Mode is either train (train model) or test (exploit model)
+    'mode': 'test',
     # Number of simulations
     'num_simulations': 50,
     # Number of action chosen during 'expand_node'
@@ -34,20 +36,23 @@ default_conf = {
     # Value model parameters
     'model': {        
         # Learning rate
-        'lr': 0.001,
+        'lr': 0.0005,
         # Replay buffer size
-        'replay_buffer_size': 1000,
+        'replay_buffer_size': 256,
         # Value model batch size
         'batch_size': 16,
+        # MSE factor to use model instead of heuristic simulation
+        'model_over_heuristic_factor': 10,
+        # Target path to save model
+        'path': 'target/model.h5',
     }
-    
-
 }
 
 class MyZero:
     def __init__(self, env):
         self.conf = default_conf
 
+        self.total_training_steps = 0
         self.env = env
         self.policy_exploration = GreedyHeuristic(n=self.conf['n_exploration'])
         self.policy_simulation = GreedyHeuristic(n=1)
@@ -56,6 +61,8 @@ class MyZero:
             input_shape=self.env.observation_space.shape,
             batch_size=self.conf['model']['batch_size'],
             lr=self.conf['model']['lr'],
+            mode=self.conf['mode'],
+            path=self.conf['model']['path']
         )
 
         # Specific reward system for MCTS
@@ -96,12 +103,24 @@ class MyZero:
                 self.backpropagate(search_path)
 
                 # TODO: Improve architecture MCTS, follows train/collect/exploit philosophy of AlphaZero
-                batch = self.replay_buffer.batch(n_batch=self.conf['model']['batch_size'])
-                mse_value = self.model_value.train(batch)
+                if self.conf['mode'] == 'train':
+                    batch = self.replay_buffer.batch(n_batch=self.conf['model']['batch_size'])
+                    mse_value = self.model_value.train(batch)
+                    self.model_value.save()
+                    self.total_training_steps += 1
 
                 tmin = np.min([child.infos['timesteps'] for child in search_path[-1].children.values()])
                 tmax = np.max([child.infos['timesteps'] for child in search_path[-1].children.values()])
-                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].value()} // tmin={tmin} // tmax={tmax} // search_path_length={len(search_path)} // mse={mse_value}")
+             
+                print(f"----------Train #{self.total_training_steps}-----------")
+                print(f"Root node iteration #{search_path[0].visit_count}")
+                print(f"Root score = {search_path[0].value()}")
+                print(f"t_min = {tmin} | t_max = {tmax}")
+                print(f"search_path_length = {len(search_path)}")
+                if self.conf['mode'] == 'train':
+                    print(f"model_value MSE = {mse_value}")
+                print("-------------------------------------------")
+
             else:
                 # Simulation
                 self.simulation(next_node)
@@ -130,8 +149,6 @@ class MyZero:
         action = np.argmax(ucb_scores)
         child = list(node_children.values())[action]
 
-        print(visits)
-
         return action, child
 
     def expand_node(self, node, n_exploration):
@@ -153,8 +170,9 @@ class MyZero:
         # For each action chosen, create a child node
         for action in action_chosen:
             # Load current env state and act
-            c_env.step(action)
+            _, _, done, _  = c_env.step(action)
             
+            print(f"Terminal at {c_env.t}")
             child = Node(c_env)
             children[action] =  child
 
@@ -169,18 +187,31 @@ class MyZero:
             # Retrieve env state            
             env = child.get_state(self.env)
             obs = env.current_obs
-            done = child.done
 
-            # And enjoy environment until its done with simulation policy            
-            while not done:
-                action = pi_simu.act(obs)
-                obs, rew, done, info = env.step(action)               
-                
-            # Reward at leaf is gamma power timestep
-            child.reward = self.conf['gamma'] ** env.t
-            child.cum_rewards = child.reward
-            child.visit_count = 1
-            child.infos['timesteps'] = env.t
+            if self.conf['mode'] == 'train':
+                done = child.done
+
+                # And enjoy environment until its done with simulation policy            
+                while not done:
+                    action = pi_simu.act(obs)
+                    obs, rew, done, info = env.step(action)               
+                    
+                # Reward at leaf is gamma power timestep
+                child.reward = self.conf['gamma'] ** env.t
+                child.cum_rewards = child.reward
+                child.visit_count = 1
+                child.infos['timesteps'] = env.t
+
+            elif self.conf['mode'] == 'test':
+                model_value = np.squeeze(self.model_value.predict(np.array([obs])).numpy())
+                # Reward at leaf is gamma power timestep
+                child.reward = model_value
+                child.cum_rewards = child.reward
+                child.visit_count = 1
+                child.infos['timesteps'] = 0.0
+
+            else:
+                raise NotImplemented('Not yet implemented')
 
             if not best_node_score or child.reward >= best_node_score:
                 best_node_score = child.reward
@@ -197,12 +228,12 @@ class MyZero:
             node.cum_rewards += last_value
             node.visit_count += 1
 
-            # Add those data to replay buffer
-            # And enjoy model to see accuracy
-            origin_obs = np.copy(node.get_state(self.env).current_obs)
-            model_value = self.model_value.predict(np.array([origin_obs])).numpy()
-            print(f"model_value={np.squeeze(model_value)} vs true_value={node.value()}")
-            self.replay_buffer.add({'obs': origin_obs, 'value': node.value()})
+            if self.conf['mode'] == 'train':
+                # Add those data to replay buffer
+                origin_obs = np.copy(node.get_state(self.env).current_obs)
+                # model_value = self.model_value.predict(np.array([origin_obs])).numpy()
+                # print(f"model_value={np.squeeze(model_value)} vs true_value={node.value()}")
+                self.replay_buffer.add({'obs': origin_obs, 'value': node.value()})
 
 
     def ucb(self, node: Node, node_parent: Node):

@@ -9,7 +9,7 @@ from tensorflow.keras.layers import (
     Dense, Conv2D, Input, LSTM, Embedding, Dropout, Activation, Flatten
 )
 from tensorflow.keras.metrics import Mean
-
+from tensorflow.keras.models import load_model
 
 import numpy as np
 
@@ -33,13 +33,22 @@ def dense(input_shape, name=None):
 
 
 class ModelValue:
-    def __init__(self, input_shape, batch_size=32, lr=0.01):
+    def __init__(self, input_shape, batch_size=32, lr=0.01, mode='train', path=None):
         self.model = dense(input_shape, name="value_model")
         self.loss = kl.MeanSquaredError()
         self.optim = ko.Adam(lr=lr)
         # Loss evaluator
         self.eval_loss = Mean('loss')
         self.current_loss = 0.0
+
+        self.mode = mode
+        self.path = path
+
+        if self.mode == 'test':
+            self.model = load_model(self.path)
+
+    def save(self):
+        self.model.save(self.path)
 
     def train(self, batch_data):
         x, y = [], []
