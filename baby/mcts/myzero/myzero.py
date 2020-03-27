@@ -172,7 +172,6 @@ class MyZero:
             # Load current env state and act
             _, _, done, _  = c_env.step(action)
             
-            print(f"Terminal at {c_env.t}")
             child = Node(c_env)
             children[action] =  child
 
@@ -208,7 +207,7 @@ class MyZero:
                 child.reward = model_value
                 child.cum_rewards = child.reward
                 child.visit_count = 1
-                child.infos['timesteps'] = 0.0
+                child.infos['timesteps'] = np.log(model_value) / np.log(self.conf['gamma'])
 
             else:
                 raise NotImplemented('Not yet implemented')
