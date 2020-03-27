@@ -12,6 +12,8 @@ from typing import List
 import numpy as np
 
 from baby.mcts.myzero.node import Node
+from baby.mcts.myzero.replay_buffer import ReplayBuffer
+from baby.mcts.myzero.model_value import ModelValue
 
 from baby.heuristic.greedy import GreedyHeuristic
 
@@ -29,6 +31,10 @@ default_conf = {
     # - RAND: add random legal action to node
     # - DIST: add legal action with random selection according to probability distributioon
     'exploration_method': 'FULL',
+    # Replay buffer size
+    'replay_buffer_size': 1000,
+    # Value model batch size
+    'batch_size': 32,
 
 }
 
@@ -39,6 +45,11 @@ class MyZero:
         self.env = env
         self.policy_exploration = GreedyHeuristic(n=self.conf['n_exploration'])
         self.policy_simulation = GreedyHeuristic(n=1)
+        self.replay_buffer = ReplayBuffer(size=self.conf['replay_buffer_size'])
+        self.model_value = ModelValue(
+            input_shape=self.env.observation_space.shape,
+            batch_size=self.conf['batch_size']
+        )
 
         # Specific reward system for MCTS
         self.env.conf['reward'] =  {
@@ -77,8 +88,12 @@ class MyZero:
                 # Backpropagate Q-values
                 self.backpropagate(search_path)
 
+                # TODO: Improve architecture MCTS, follows train/collect/exploit philosophy of AlphaZero
+                batch = self.replay_buffer.batch(n_batch=self.conf['batch_size'])
+                mse_value = self.model_value.train(batch)
+
                 t = np.min([child.infos['timesteps'] for child in search_path[-1].children.values()])
-                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].value()} // timesteps={t} // search_path_length={len(search_path)}")
+                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].value()} // timesteps={t} // search_path_length={len(search_path)} // mse={mse_value}")
             else:
                 # Simulation
                 self.simulation(next_node)
@@ -114,9 +129,12 @@ class MyZero:
         """
         # Prepare output
         children = {}
+        
+        #  Restore current env state
+        c_env = node.get_state(self.env)
 
         # Use heuristic to determine n action
-        c_obs = node.get_state().current_obs
+        c_obs = c_env.current_obs
 
         action_legals = self.policy_exploration.act(c_obs)
         action_chosen = self.select_action(action_legals)
@@ -124,10 +142,9 @@ class MyZero:
         # For each action chosen, create a child node
         for action in action_chosen:
             # Load current env state and act
-            env_child = node.get_state()
-            env_child.step(action)
+            c_env.step(action)
             
-            child = Node(env_child)
+            child = Node(c_env)
             children[action] =  child
 
         # Store children
@@ -138,11 +155,12 @@ class MyZero:
         best_node_score = None
 
         for child in node.children.values():
-            
-            env = child.get_state()
+            # Retrieve env state            
+            env = child.get_state(self.env)
             obs = env.current_obs
             done = child.done
-            
+
+            # And enjoy environment until its done with simulation policy            
             while not done:
                 action = pi_simu.act(obs)
                 obs, rew, done, info = env.step(action)               
@@ -168,8 +186,13 @@ class MyZero:
             node.cum_rewards += last_value
             node.visit_count += 1
 
-        # for node in search_path:
-        #     print(f"Node {node.value()} / {node.visit_count}")
+            # Add those data to replay buffer
+            # And enjoy model to see accuracy
+            origin_obs = np.copy(node.get_state(self.env).current_obs)
+            model_value = self.model_value.predict(np.array([origin_obs])).numpy()
+            print(f"model_value={np.squeeze(model_value)} vs true_value={node.value()}")
+            self.replay_buffer.add({'obs': origin_obs, 'value': node.value()})
+
 
     def ucb(self, node: Node, node_parent: Node):
         explo_factor = self.conf['exploration_factor'] * np.sqrt(node_parent.visit_count / node.visit_count)

@@ -14,15 +14,27 @@ class Node():
         self.infos = {}
 
         self.done = (env_state.validation == 0.0).all()
-        self.state = cloudpickle.dumps(env_state)
+        self.state = {
+            't': env_state.t,
+            'validation_frame': np.copy(env_state.validation),
+            'cum_rew': env_state.cum_rew,
+        }
 
     def terminal(self):
         return self.done
 
-    def get_state(self):
-        state = pickle.loads(self.state)
+    def get_state(self, env_state):
+        # Restore environment state
+        env_state.t = self.state['t']
+        env_state.validation = np.copy(self.state['validation_frame'])
+        env_state.cum_rew = self.state['cum_rew']
 
-        return state
+        # Restore also current observation in environment state
+        obs = env_state.predict(env_state.t)
+        obs = np.append(obs, env_state.validation, axis=2)
+        env_state.current_obs = obs
+
+        return env_state
 
     def expanded(self):
         return (len(self.children) > 0)
