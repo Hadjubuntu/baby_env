@@ -24,15 +24,15 @@ default_conf = {
     'max_episode_iteration': 1000,
     # factor of ground truth modification
     'alpha_ground_truth': 0.8,
-    'alpha_slow_ground_truth': 0.1,
+    'alpha_slow_ground_truth': 0.8,
     # Number of slow frames (with slow alpha factor)
-    'alpha_slow_freq': 2,
+    'alpha_slow_freq': 1,
     # Minimum value of ground truth to be validated
     'validation_threshold': 0.8,
     # Sigma of gaussian filter for prediction depending on delta time
     'sigma_prediction': 1.0, # prev=1.0 for training/transfer // prev=0.1
-    'sigma_gaussian_value': 0.5,
-    'gamma_gaussian_value': 0.05,
+    'sigma_gaussian_value': 2.0,
+    'gamma_gaussian_value': 1.5,
 
     # Reward system
     'reward': {

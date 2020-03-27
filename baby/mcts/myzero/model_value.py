@@ -23,7 +23,6 @@ def dense(input_shape, name=None):
 
     # Create one dense layer and one layer for output
     x = Dense(128, activation='tanh')(x)
-    x = Dense(128, activation='tanh')(x)
     dist = Dense(1)(x)
 
     # Finally build model
@@ -34,12 +33,13 @@ def dense(input_shape, name=None):
 
 
 class ModelValue:
-    def __init__(self, input_shape, batch_size=32, lr=0.001):
+    def __init__(self, input_shape, batch_size=32, lr=0.01):
         self.model = dense(input_shape, name="value_model")
         self.loss = kl.MeanSquaredError()
         self.optim = ko.Adam(lr=lr)
         # Loss evaluator
-        self.eval_loss = Mean('loss')    
+        self.eval_loss = Mean('loss')
+        self.current_loss = 0.0
 
     def train(self, batch_data):
         x, y = [], []
@@ -67,5 +67,6 @@ class ModelValue:
 
         gradients = tape.gradient(loss, trainable_vars)
         self.optim.apply_gradients(zip(gradients, trainable_vars))
+        self.current_loss = self.eval_loss(loss)
 
-        return self.eval_loss(loss)
+        return self.current_loss

@@ -19,11 +19,11 @@ from baby.heuristic.greedy import GreedyHeuristic
 
 default_conf = {
     # Number of simulations
-    'num_simulations': 1000,
+    'num_simulations': 50,
     # Number of action chosen during 'expand_node'
-    'n_exploration': 3,
+    'n_exploration': 5,
     # Exploration factor (c)
-    'exploration_factor': 0.0001,
+    'exploration_factor': 1.25,
     # Gamma factor
     'gamma': 0.997,
     # Exploration method 
@@ -31,10 +31,16 @@ default_conf = {
     # - RAND: add random legal action to node
     # - DIST: add legal action with random selection according to probability distributioon
     'exploration_method': 'FULL',
-    # Replay buffer size
-    'replay_buffer_size': 1000,
-    # Value model batch size
-    'batch_size': 32,
+    # Value model parameters
+    'model': {        
+        # Learning rate
+        'lr': 0.001,
+        # Replay buffer size
+        'replay_buffer_size': 1000,
+        # Value model batch size
+        'batch_size': 16,
+    }
+    
 
 }
 
@@ -45,10 +51,11 @@ class MyZero:
         self.env = env
         self.policy_exploration = GreedyHeuristic(n=self.conf['n_exploration'])
         self.policy_simulation = GreedyHeuristic(n=1)
-        self.replay_buffer = ReplayBuffer(size=self.conf['replay_buffer_size'])
+        self.replay_buffer = ReplayBuffer(size=self.conf['model']['replay_buffer_size'])
         self.model_value = ModelValue(
             input_shape=self.env.observation_space.shape,
-            batch_size=self.conf['batch_size']
+            batch_size=self.conf['model']['batch_size'],
+            lr=self.conf['model']['lr'],
         )
 
         # Specific reward system for MCTS
@@ -89,11 +96,12 @@ class MyZero:
                 self.backpropagate(search_path)
 
                 # TODO: Improve architecture MCTS, follows train/collect/exploit philosophy of AlphaZero
-                batch = self.replay_buffer.batch(n_batch=self.conf['batch_size'])
+                batch = self.replay_buffer.batch(n_batch=self.conf['model']['batch_size'])
                 mse_value = self.model_value.train(batch)
 
-                t = np.min([child.infos['timesteps'] for child in search_path[-1].children.values()])
-                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].value()} // timesteps={t} // search_path_length={len(search_path)} // mse={mse_value}")
+                tmin = np.min([child.infos['timesteps'] for child in search_path[-1].children.values()])
+                tmax = np.max([child.infos['timesteps'] for child in search_path[-1].children.values()])
+                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].value()} // tmin={tmin} // tmax={tmax} // search_path_length={len(search_path)} // mse={mse_value}")
             else:
                 # Simulation
                 self.simulation(next_node)
@@ -117,9 +125,12 @@ class MyZero:
         """
         node_children = node.children
         ucb_scores = np.array([self.ucb(node_child, node) for node_child in node_children.values()])
+        visits = np.array([node_child.visit_count for node_child in node_children.values()])
 
         action = np.argmax(ucb_scores)
         child = list(node_children.values())[action]
+
+        print(visits)
 
         return action, child
 
@@ -196,7 +207,9 @@ class MyZero:
 
     def ucb(self, node: Node, node_parent: Node):
         explo_factor = self.conf['exploration_factor'] * np.sqrt(node_parent.visit_count / node.visit_count)
-        return node.value() + explo_factor
+        node_value = node.value()
+
+        return node_value + explo_factor
 
 
     def select_action(self, action_legals):
