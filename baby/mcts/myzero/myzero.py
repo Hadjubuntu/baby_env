@@ -78,7 +78,7 @@ class MyZero:
                 self.backpropagate(search_path)
 
                 t = np.min([child.infos['timesteps'] for child in search_path[-1].children.values()])
-                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].reward} // timesteps={t} // search_path_length={len(search_path)}")
+                print(f"#{search_path[0].visit_count} // Score root = {search_path[0].value()} // timesteps={t} // search_path_length={len(search_path)}")
             else:
                 # Simulation
                 self.simulation(next_node)
@@ -135,6 +135,7 @@ class MyZero:
 
     def simulation(self, node: Node):
         pi_simu = self.policy_simulation
+        best_node_score = None
 
         for child in node.children.values():
             
@@ -152,14 +153,19 @@ class MyZero:
             child.visit_count = 1
             child.infos['timesteps'] = env.t
 
+            if not best_node_score or child.reward >= best_node_score:
+                best_node_score = child.reward
+
+        # Optimist view: take best children reward of leaf 
+        node.reward = best_node_score
+
 
     def backpropagate(self, search_path: List):
         # From leaf node to root
+        last_value = search_path[-1].reward
+
         for node in search_path[::-1]:
-            # Optimist view: take best children reward of leaf 
-            best_reward_children = np.max([child.reward for child in node.children.values()])
-            node.cum_rewards += best_reward_children
-            node.reward = best_reward_children # Optionnal ??
+            node.cum_rewards += last_value
             node.visit_count += 1
 
         # for node in search_path:
