@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     python_requires='>=3.6',
     install_requires=[
-        'numpy==1.18.1',
+        'numpy==1.22.0',
         'tensorflow==1.15.2',
         'tensorflow-gpu==1.15.2',
         'gym==0.15.4',
