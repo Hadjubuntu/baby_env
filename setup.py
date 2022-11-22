@@ -20,5 +20,5 @@ setup(
         'pytest==5.2.2',
         'matplotlib==3.1.2',
         'jupyter==1.0.0',
-        'Pillow==7.0.0'],
+        'Pillow==9.3.0'],
 )
